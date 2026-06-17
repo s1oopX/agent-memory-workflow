@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.17 - 2026-06-17
+
+- Expanded `README.en.md` into a full formal English project homepage aligned
+  with the default Chinese README.
+- Updated fixed-tag README examples to point at `v0.1.17`.
+
 ## 0.1.16 - 2026-06-17
 
 - Expanded the default Chinese README into a formal project homepage with

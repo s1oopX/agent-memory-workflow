@@ -1,155 +1,202 @@
 # Agent Memory Workflow
 
-[简体中文](README.md) | [English](README.en.md)
+[Simplified Chinese](README.md) | [English](README.en.md)
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Workflow](https://img.shields.io/badge/workflow-v3-2f6f4e.svg)
 ![Scope](https://img.shields.io/badge/scope-local--first-4b5563.svg)
 ![Runtime](https://img.shields.io/badge/runtime-PowerShell%207-2563eb.svg)
 
-Agent Memory Workflow is a local-first file protocol for maintaining reusable,
-auditable, and verifiable operating context for coding agents. It standardizes a
-local `.agents` directory, generic templates, an initializer, and a verifier so
-local agents can share the same machine-level guidance without depending on a
-hosted memory service or a specific agent product.
+Agent Memory Workflow is a local-first file protocol for long-lived coding-agent operating context. It turns reusable machine-level facts into auditable, verifiable, and portable Markdown and JSON files, then provides initialization, upgrade, diagnostic, and verification tools so different local agents can read, import, and maintain the same source of truth.
 
-The project does not replace an agent's own memory system. It provides a stable
-local source of truth: agents read that source, import durable facts into their
-own persistent memory or instruction layer, and return a receipt that proves
-what happened.
+The problem is intentionally narrow: agents should not re-scan the whole machine in every new conversation, and machine facts should not be locked inside one product's private memory. Shared facts should live in a user-controlled local directory, remain human-reviewable, be script-verifiable, be importable by new local agents, and never mix with credentials or private session data.
+
+The default shared directory is:
+
+```text
+$HOME\.agents
+```
+
+Recommended first run:
+
+```powershell
+npx -y github:s1oopX/agent-memory-workflow preflight --target "$HOME\.agents"
+npx -y github:s1oopX/agent-memory-workflow init --target "$HOME\.agents"
+npx -y github:s1oopX/agent-memory-workflow verify --root "$HOME\.agents"
+```
+
+For strict reproducibility, use a fixed GitHub release tag:
+
+```powershell
+npx -y github:s1oopX/agent-memory-workflow#v0.1.17 --version
+```
 
 ## Table of Contents
 
 - [Project Positioning](#project-positioning)
-- [Scope](#scope)
-- [Current Status](#current-status)
-- [Core Concepts](#core-concepts)
-- [How It Works](#how-it-works)
-- [Requirements](#requirements)
-- [Quick Start](#quick-start)
-- [Files to Edit After Initialization](#files-to-edit-after-initialization)
-- [Importing Memory into a New Agent](#importing-memory-into-a-new-agent)
-- [Repository Layout](#repository-layout)
-- [Protocol Files](#protocol-files)
+- [Fit](#fit)
+- [Non-Goals](#non-goals)
+- [Workflow Overview](#workflow-overview)
+- [One-Minute Start](#one-minute-start)
+- [Installation Paths](#installation-paths)
+- [Required Edits After Initialization](#required-edits-after-initialization)
+- [Importing Durable Memory Into a Local Agent](#importing-durable-memory-into-a-local-agent)
+- [Successful Import Criteria](#successful-import-criteria)
+- [Directory Layout](#directory-layout)
+- [Core Files](#core-files)
 - [Command Reference](#command-reference)
-- [What the Verifier Checks](#what-the-verifier-checks)
+- [PowerShell Script Parameters](#powershell-script-parameters)
+- [JSON Output and Automation](#json-output-and-automation)
+- [Upgrade and Backup Semantics](#upgrade-and-backup-semantics)
+- [Verifier Coverage](#verifier-coverage)
 - [Security Boundary](#security-boundary)
 - [Maintenance Policy](#maintenance-policy)
-- [Design Principles](#design-principles)
-- [Why Not a Database or SDK](#why-not-a-database-or-sdk)
-- [Publishing and Reproduction Contract](#publishing-and-reproduction-contract)
+- [Quality Gates](#quality-gates)
+- [Reproduction Contract](#reproduction-contract)
+- [Design Tradeoffs](#design-tradeoffs)
+- [FAQ](#faq)
+- [Developer Guide](#developer-guide)
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [License](#license)
 
 ## Project Positioning
 
-Coding agents working on real machines often rediscover the same facts:
+Coding agents working on real machines repeatedly need the same durable facts:
 
-- which tools are available and which are not
-- which paths are durable and which are temporary workspaces
+- which shells, runtimes, package managers, and build tools are available
+- which commands only work in a specific shell or profile
+- which directories are durable configuration locations and which are temporary workspaces
 - which services should not start automatically
-- where environment variables, PATH, or shell behavior differ
-- which configuration directories must not be cleaned casually
-- how a new agent should inherit machine-level conventions
+- which configuration directories are live application data and must not be moved or cleaned casually
+- what a new agent should read first, and how it should prove that it imported the rules
 
-If these facts live only in one chat, they disappear quickly. If they live only
-inside one agent's private memory, they are difficult to reuse across other local
-agents.
+If these facts live only in one chat, they disappear in the next session. If they live only inside one agent product's private memory, other local agents cannot reliably reuse them, and humans cannot easily review or migrate them.
 
-Agent Memory Workflow uses a more inspectable model: shared facts live in a local
-`.agents` directory, and every agent follows the same import, persistence, and
-receipt protocol.
+Agent Memory Workflow provides a local source of truth:
 
-## Scope
+```text
+User machine .agents directory
+        |
+AGENT_BOOTSTRAP.md stable entrypoint
+        |
+AGENT_MEMORY_IMPORT_PROMPT.md import protocol
+        |
+Agent writes to its own durable memory or persistent instruction layer
+        |
+AGENT_MEMORY_IMPORT_RECEIPT_TEMPLATE.md receipt proof
+```
 
-This project is intended for:
+It is not a hosted memory service, database, credential manager, or product-specific plugin. It is a local file protocol with a small toolchain.
 
-- local Codex-like agents
-- local IDE agents
-- local CLI agents
-- local desktop agents
-- other coding agents with local filesystem access
+## Fit
 
-This project does not provide:
+This project is designed for:
 
-- cloud synchronization
-- hosted memory storage
-- remote web-agent attachment workflows
-- credential management
-- multi-device state synchronization
+- users of Codex-like local coding agents
+- users of local IDE agents, CLI agents, or desktop agents
+- users who want multiple local agents to share one machine's toolchain and path conventions
+- users who want agents to read a maintained machine fact library instead of repeating full environment audits
+- users who want durable agent memory as reviewable, backup-friendly, portable files
+- maintainers who want to open source a reproducible local-agent memory workflow without publishing private machine facts
+
+Typical value:
+
+| Scenario | Value |
+| --- | --- |
+| Starting a new local-agent chat | Read the bootstrap instead of scanning the machine from scratch |
+| Switching agent products | Reuse `.agents` machine facts and maintenance policies |
+| Updating a toolchain | Edit machine files and ask agents to reimport |
+| Organizing user or config directories | Agents read maintenance policy before touching live data |
+| Open sourcing the workflow | Publish generic templates and tools, not private paths or secrets |
+
+## Non-Goals
+
+This project does not try to provide:
+
+- attachment workflows for remote web agents without local filesystem access
+- multi-device synchronization or conflict merging
+- hosted cloud memory
+- encrypted secret storage or credential management
+- multi-user permission management
 - an agent execution sandbox
+- automatic discovery and auditing of all software on a machine
 
-The source of truth is always the user's local `.agents` directory.
+If an agent cannot read the local filesystem, it cannot directly complete this workflow's import. This project targets local agents only.
 
-## Current Status
-
-| Item | Status |
-| --- | --- |
-| Workflow version | `workflow-v3` |
-| Installation entrypoint | PowerShell 7 scripts |
-| CLI wrapper | `npx github:s1oopX/agent-memory-workflow` |
-| Template source | `templates/` |
-| Verifier | `tools/verify-agent-memory-workflow.ps1` |
-| Automated verification | GitHub Actions + `npm run ci` |
-| Default scenario | Windows local-agent workflows |
-| License | MIT |
-| Security policy | [SECURITY.md](SECURITY.md) |
-| Contribution guide | [CONTRIBUTING.md](CONTRIBUTING.md) |
-
-## Core Concepts
-
-| Concept | Description |
-| --- | --- |
-| `.agents` | Local shared memory directory on the user's machine |
-| Bootstrap | Stable entrypoint for agents reading local memory |
-| Import Prompt | Instruction given to a new agent to import the workflow |
-| Receipt | Structured response returned by an agent after import |
-| Machine Facts | Non-secret, durable facts about the current machine |
-| Manifest | Machine-readable version, path, and policy declaration |
-| Verifier | Script that checks structure, version markers, references, and common secret patterns |
-
-## How It Works
+## Workflow Overview
 
 ```mermaid
 flowchart TD
-    A["Clone repository"] --> B["Initialize .agents"]
-    B --> C["Fill machine facts"]
-    C --> D["Run verifier"]
-    D --> E["Give import prompt to local agent"]
-    E --> F["Agent imports durable memory"]
-    F --> G["Agent returns receipt"]
-    G --> H["Reimport when workflow or machine facts change"]
+    A["Preflight: check runtime and target directory"] --> B["Init: generate .agents"]
+    B --> C["Edit: fill machine facts"]
+    C --> D["Verify: check structure, references, and sensitive patterns"]
+    D --> E["Import: give the import prompt to a local agent"]
+    E --> F["Persist: agent writes durable memory or persistent instructions"]
+    F --> G["Receipt: agent returns import receipt"]
+    G --> H["Operate: later tasks read bootstrap first"]
+    H --> I["Upgrade/Reimport: refresh after template or machine-fact changes"]
 ```
 
-The workflow is:
+Each stage has a clear input, output, and pass condition:
 
-1. The user generates a local `.agents` directory.
-2. The user or a trusted local agent fills in machine facts.
-3. The verifier confirms that structure and policies are consistent.
-4. A new agent reads the import prompt.
-5. The agent writes stable facts into its own persistent layer.
-6. The agent returns an import receipt.
-7. The user reimports after workflow or machine-fact changes.
+| Stage | Command or File | Pass Condition |
+| --- | --- | --- |
+| Preflight | `preflight` | `Result: PASS`; target state is explicit |
+| Init | `init` | `.agents` exists and automatic verification passes |
+| Edit facts | `machine/*.md` | only durable, non-secret facts are recorded |
+| Verify | `verify` | required files, references, versions, manifest, and common sensitive patterns pass |
+| Import | `import-prompt` or `AGENT_MEMORY_IMPORT_PROMPT.md` | agent reads the required files |
+| Persist | agent-specific capability | memory survives a new conversation or process restart |
+| Receipt | `AGENT_MEMORY_IMPORT_RECEIPT_TEMPLATE.md` | receipt states what was read, where memory was written, and whether it is durable |
+| Maintain | `status`, `doctor`, `upgrade` | directory remains diagnosable, upgradable, and reimportable |
 
-## Requirements
+## One-Minute Start
 
-Required:
+Requirements:
 
+- local Windows environment
 - Git
-- PowerShell 7 or later, available as `pwsh`
-- a local agent that can read the filesystem
+- PowerShell 7 available as `pwsh`
+- Node.js 18 or later if using the `npx` wrapper
 
-Optional:
+Recommended flow:
 
-- Node.js 18 or later, for the `npx` wrapper
+```powershell
+npx -y github:s1oopX/agent-memory-workflow preflight --target "$HOME\.agents"
+npx -y github:s1oopX/agent-memory-workflow init --target "$HOME\.agents"
+npx -y github:s1oopX/agent-memory-workflow verify --root "$HOME\.agents"
+npx -y github:s1oopX/agent-memory-workflow import-prompt --root "$HOME\.agents"
+```
 
-The current release uses PowerShell 7 as the initialization and verification
-entrypoint and has been validated for Windows local-agent workflows.
+Give the final command's import instruction to the new local agent. The agent should return an import receipt.
 
-## Quick Start
+## Installation Paths
 
-### Option 1: Clone and Initialize
+### Option 1: Run from GitHub with npx
+
+Best for normal users. No global npm package install is required:
+
+```powershell
+npx -y github:s1oopX/agent-memory-workflow preflight --target "$HOME\.agents"
+npx -y github:s1oopX/agent-memory-workflow init --target "$HOME\.agents"
+```
+
+Verify:
+
+```powershell
+npx -y github:s1oopX/agent-memory-workflow verify --root "$HOME\.agents"
+```
+
+Diagnose:
+
+```powershell
+npx -y github:s1oopX/agent-memory-workflow doctor --root "$HOME\.agents"
+```
+
+### Option 2: Clone and run PowerShell scripts
+
+Best for contributors, reviewers, and users who want to inspect templates offline:
 
 ```powershell
 git clone https://github.com/s1oopX/agent-memory-workflow.git
@@ -160,76 +207,124 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\init-agent-memory-workflow
 Verify the generated directory:
 
 ```powershell
-pwsh -NoProfile -ExecutionPolicy Bypass -File "$HOME\.agents\tools\verify-agent-memory-workflow.ps1"
+pwsh -NoProfile -ExecutionPolicy Bypass -File "$HOME\.agents\tools\verify-agent-memory-workflow.ps1" -Root "$HOME\.agents"
 ```
 
-### Option 2: Run from GitHub with npx
+Verify repository templates:
 
 ```powershell
-npx github:s1oopX/agent-memory-workflow init --target "$HOME\.agents"
-npx github:s1oopX/agent-memory-workflow verify --root "$HOME\.agents"
+npm run verify
 ```
 
-The `npx` wrapper delegates initialization and verification to the PowerShell
-scripts in the repository, and directly provides read-only diagnostics, path,
-and import-prompt commands. It does not hide the Markdown source files inside a
-private database.
+### Option 3: Reproduce from a fixed release tag
 
-## Files to Edit After Initialization
+Best for tutorials, automation scripts, and auditable environments:
 
-After initialization, edit these files first:
+```powershell
+npx -y github:s1oopX/agent-memory-workflow#v0.1.17 preflight --target "$HOME\.agents"
+npx -y github:s1oopX/agent-memory-workflow#v0.1.17 init --target "$HOME\.agents"
+```
+
+Pinning a tag prevents default-branch changes from changing script behavior. Production-like usage should pin a tag.
+
+## Required Edits After Initialization
+
+Initialization creates generic templates. The useful machine facts must be filled in by the user or a trusted local agent.
+
+Edit these first:
 
 ```text
 $HOME\.agents\machine\MACHINE_ENVIRONMENT_MEMORY.md
 $HOME\.agents\machine\AGENT_ENVIRONMENT_QUICK_REFERENCE.md
 $HOME\.agents\machine\HOME_DIRECTORY_MAP.md
+$HOME\.agents\machine\MAINTENANCE_POLICY.md
 ```
 
-These files should contain stable, non-secret machine facts such as:
+Recommended contents:
 
-- verified shells, runtimes, package managers, and build tools
-- durable code, configuration, and agent directories
-- toolchain differences, such as commands available only in specific shells
-- local service preferences, such as whether a service should not auto-start
-- policies agents must follow when maintaining this directory
+- verified shells, runtimes, package managers, database clients, and build tools
+- verified missing tools or tools not on PATH
+- shell-specific differences, such as PowerShell, CMD, Git Bash, or Developer PowerShell behavior
+- durable paths, such as code directories, agent directories, and user configuration directories
+- temporary or safely removable directory boundaries
+- local service preferences, such as whether Docker should not auto-start
+- rules for maintaining `.agents`, `.codex`, IDE config directories, and other live data
 
-Do not store passwords, tokens, private keys, cookies, database credentials, or
-private session logs.
+Do not record:
 
-## Importing Memory into a New Agent
+- passwords
+- API tokens
+- private keys
+- cookies
+- database credentials
+- Redis, MySQL, or other service secrets
+- private chat transcripts
+- temporary session logs
 
-Give a local agent this instruction:
+## Importing Durable Memory Into a Local Agent
+
+The minimal instruction to give a local agent is:
 
 ```text
 Read $HOME\.agents\AGENT_MEMORY_IMPORT_PROMPT.md and import it into your local durable memory or persistent instruction layer.
 ```
 
-You can also generate this instruction through the CLI:
+You can also generate it through the CLI:
 
 ```powershell
-npx github:s1oopX/agent-memory-workflow import-prompt --root "$HOME\.agents"
+npx -y github:s1oopX/agent-memory-workflow import-prompt --root "$HOME\.agents"
 ```
 
-The agent should return a receipt based on:
+The agent must follow the import prompt's required reading order, not just read this README. The required order is defined in `AGENT_MEMORY_IMPORT_PROMPT.md` and normally includes:
+
+```text
+AGENT_BOOTSTRAP.md
+machine\MACHINE_ENVIRONMENT_MEMORY.md
+machine\AGENT_EXECUTION_PLAYBOOK.md
+machine\AGENT_ENVIRONMENT_QUICK_REFERENCE.md
+machine\HOME_DIRECTORY_MAP.md
+machine\MAINTENANCE_POLICY.md
+AGENT_MEMORY_IMPORT_RECEIPT_TEMPLATE.md
+AGENT_PLATFORM_ADAPTERS.md
+imports\IMPORT_REGISTRY.md
+```
+
+The agent should persist a compact pointer and stable facts, not copy every source file into memory. The minimum durable record should include:
+
+```text
+Agent Memory Workflow root: $HOME\.agents
+Bootstrap: $HOME\.agents\AGENT_BOOTSTRAP.md
+Machine facts: $HOME\.agents\machine
+Verifier: $HOME\.agents\tools\verify-agent-memory-workflow.ps1
+Scope: local filesystem agents only
+Secrets policy: never store credentials, tokens, private keys, cookies, service secrets, or database passwords
+Default behavior: use the bootstrap path as the first machine-context source; do not re-audit the whole environment for ordinary tasks
+```
+
+## Successful Import Criteria
+
+An agent must not only say "I remembered it." It must return a receipt based on:
 
 ```text
 $HOME\.agents\AGENT_MEMORY_IMPORT_RECEIPT_TEMPLATE.md
 ```
 
-The receipt must state:
+A valid receipt should state at least:
 
-- which files were read
+- which files were actually read
 - whether local filesystem access was available
-- where memory was stored
-- whether the storage is durable
+- where the durable record was written
+- whether that location survives a new conversation or process restart
+- whether the record was written to project rules, user memory, startup instructions, or only the current chat
 - whether manual user action is still required
-- whether a fresh-chat test is needed
+- whether fresh-session verification is still needed
 - whether the no-secrets policy was followed
 
-If the agent can only remember the import inside the current chat, it must mark
-the receipt as `chat_local_only` and must not claim durable memory storage.
+If the agent can only keep the information in the current chat, the receipt must mark `chat_local_only`. If the agent needs the user to manually place content in a settings or memory page, the receipt must mark `manual_user_action_required`.
 
-## Repository Layout
+## Directory Layout
+
+Repository layout:
 
 ```text
 agent-memory-workflow/
@@ -237,6 +332,7 @@ agent-memory-workflow/
     agent-memory-workflow.js
   tools/
     init-agent-memory-workflow.ps1
+    test-agent-memory-workflow.ps1
     verify-agent-memory-workflow.ps1
   templates/
     AGENT_BOOTSTRAP.md
@@ -261,181 +357,253 @@ agent-memory-workflow/
       MAINTENANCE_POLICY.md
 ```
 
-When installed, the initializer copies files from `templates/` to the target
-`.agents` directory and replaces path, user, and OS placeholders.
+Installed target layout:
 
-## Protocol Files
+```text
+$HOME\.agents\
+  AGENT_BOOTSTRAP.md
+  AGENT_MEMORY_IMPORT_PROMPT.md
+  AGENT_MEMORY_IMPORT_RECEIPT_TEMPLATE.md
+  AGENT_MEMORY_WORKFLOW.md
+  AGENT_MEMORY_WORKFLOW_CHANGELOG.md
+  AGENT_MEMORY_WORKFLOW_MANIFEST.json
+  AGENT_PLATFORM_ADAPTERS.md
+  AGENT_WORKFLOW_OPEN_SOURCE_GUIDE.md
+  AGENT_WORKFLOW_REPLICATION_STRATEGY.md
+  AGENTS.md
+  README.md
+  imports\
+    README.md
+    IMPORT_REGISTRY.md
+  machine\
+    MACHINE_ENVIRONMENT_MEMORY.md
+    AGENT_EXECUTION_PLAYBOOK.md
+    AGENT_ENVIRONMENT_QUICK_REFERENCE.md
+    HOME_DIRECTORY_MAP.md
+    MAINTENANCE_POLICY.md
+  tools\
+    init-agent-memory-workflow.ps1
+    verify-agent-memory-workflow.ps1
+```
 
-| File | Purpose |
-| --- | --- |
-| `AGENT_BOOTSTRAP.md` | Stable local-agent entrypoint |
-| `AGENT_MEMORY_IMPORT_PROMPT.md` | Instruction used when importing memory into a new agent |
-| `AGENT_MEMORY_IMPORT_RECEIPT_TEMPLATE.md` | Receipt format agents must return after import |
-| `AGENT_MEMORY_WORKFLOW.md` | Workflow summary and reimport policy |
-| `AGENT_MEMORY_WORKFLOW_MANIFEST.json` | Machine-readable version, path, and policy manifest |
-| `AGENT_PLATFORM_ADAPTERS.md` | Guidance for different local-agent categories |
-| `AGENT_WORKFLOW_REPLICATION_STRATEGY.md` | Rationale for file protocol, CLI, skill, and SDK choices |
-| `AGENT_WORKFLOW_OPEN_SOURCE_GUIDE.md` | Open-source publishing boundary and checklist |
-| `imports/IMPORT_REGISTRY.md` | Import status registry |
-| `machine/*` | Stable, non-secret facts about the current machine |
+The initializer copies files from `templates/` into the target directory and replaces placeholders for paths, user name, OS name, and generation time.
+
+## Core Files
+
+| File | Role | Maintainer |
+| --- | --- | --- |
+| `AGENT_BOOTSTRAP.md` | stable agent entrypoint; later tasks read this first | template maintainer |
+| `AGENT_MEMORY_IMPORT_PROMPT.md` | required import instruction for new agents | template maintainer |
+| `AGENT_MEMORY_IMPORT_RECEIPT_TEMPLATE.md` | receipt format agents return after import | template maintainer |
+| `AGENT_MEMORY_WORKFLOW.md` | workflow summary, version, and reimport rules | template maintainer |
+| `AGENT_MEMORY_WORKFLOW_MANIFEST.json` | machine-readable path, version, and policy manifest | initializer |
+| `AGENT_PLATFORM_ADAPTERS.md` | adapter rules for local Codex, IDE, CLI, and desktop agents | template maintainer |
+| `AGENT_WORKFLOW_REPLICATION_STRATEGY.md` | tradeoffs between file protocol, CLI, skill, and SDK | template maintainer |
+| `AGENT_WORKFLOW_OPEN_SOURCE_GUIDE.md` | open-source boundary, release checklist, and reproduction standard | template maintainer |
+| `imports/IMPORT_REGISTRY.md` | records which agents imported the workflow and whether reimport is needed | user or local agent |
+| `machine/MACHINE_ENVIRONMENT_MEMORY.md` | full machine fact library | user or trusted local agent |
+| `machine/AGENT_ENVIRONMENT_QUICK_REFERENCE.md` | short machine summary for agents | user or trusted local agent |
+| `machine/AGENT_EXECUTION_PLAYBOOK.md` | execution strategy for this machine | user or trusted local agent |
+| `machine/HOME_DIRECTORY_MAP.md` | user directory and common path map | user or trusted local agent |
+| `machine/MAINTENANCE_POLICY.md` | cleanup, move, delete, and publishing constraints | user or trusted local agent |
 
 ## Command Reference
 
-Initialize:
+All `npx` commands can use `-y` to avoid interactive confirmation.
+
+| Command | Writes Files | Purpose |
+| --- | --- | --- |
+| `preflight` | no | checks `pwsh`, packaged source files, and target directory state before initialization |
+| `init` | yes | generates a new `.agents` directory |
+| `init --dry-run` | no | previews files that would be created, overwritten, or blocked |
+| `upgrade` | yes | safely refreshes workflow-managed files in an existing directory |
+| `verify` | no | checks target structure, references, versions, manifest, and sensitive patterns |
+| `status` | no | prints lightweight installation status |
+| `show-paths` | no | prints bootstrap, manifest, machine, verifier, and other key paths |
+| `import-prompt` | no | prints the instruction to give to a local agent |
+| `doctor` | no | checks runtime and target directory, then delegates to the verifier |
+| `--version` | no | prints CLI version |
+
+### Preflight
 
 ```powershell
-pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\init-agent-memory-workflow.ps1 -TargetRoot "$HOME\.agents"
+npx -y github:s1oopX/agent-memory-workflow preflight --target "$HOME\.agents"
+npx -y github:s1oopX/agent-memory-workflow preflight --target "$HOME\.agents" --json
 ```
 
-Overwrite target files:
+`preflight` reports:
+
+- CLI version
+- Node version
+- whether PowerShell 7 is available
+- whether packaged source files are present
+- whether the target directory exists
+- whether the target mode is fresh install, existing workflow, or existing non-workflow directory
+- whether a non-workflow target already contains workflow-managed files that would block normal initialization
+
+### Init
 
 ```powershell
-pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\init-agent-memory-workflow.ps1 -TargetRoot "$HOME\.agents" -Force
+npx -y github:s1oopX/agent-memory-workflow init --target "$HOME\.agents"
 ```
 
-`-Force` automatically backs up overwritten files and preserves existing
-machine facts under `machine\` by default.
-If backups are explicitly unwanted, pass `-NoBackup`; this is recommended only
-for disposable test directories.
-
-Preview initialization or upgrade actions without writing files:
+Preview without writing:
 
 ```powershell
-pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\init-agent-memory-workflow.ps1 -TargetRoot "$HOME\.agents" -DryRun
+npx -y github:s1oopX/agent-memory-workflow init --target "$HOME\.agents" --dry-run
 ```
 
-If dry run finds an existing target file and `-Force` was not passed, it reports
-`Result: FAIL` and exits nonzero, while still writing no files.
+If dry run finds an existing target file and `--force` was not passed, the command prints `Result: FAIL` and exits nonzero while still writing no files.
 
-Specify a backup directory:
+### Upgrade
 
 ```powershell
-pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\init-agent-memory-workflow.ps1 -TargetRoot "$HOME\.agents" -Force -BackupRoot "$HOME\.agents-backup"
+npx -y github:s1oopX/agent-memory-workflow upgrade --target "$HOME\.agents"
 ```
 
-Explicitly allow overwriting machine facts under `machine\`:
+`upgrade` is the safe upgrade mode. It is equivalent to initialization with force-refresh semantics: it overwrites workflow-managed files, creates backups, and preserves existing machine facts under `machine\` by default.
+
+### Verify
 
 ```powershell
-pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\init-agent-memory-workflow.ps1 -TargetRoot "$HOME\.agents" -Force -OverwriteMachineFacts
+npx -y github:s1oopX/agent-memory-workflow verify --root "$HOME\.agents"
+npx -y github:s1oopX/agent-memory-workflow verify --root "$HOME\.agents" --json
 ```
 
-Skip automatic verification after initialization:
+### Status
 
 ```powershell
-pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\init-agent-memory-workflow.ps1 -TargetRoot "$HOME\.agents" -SkipVerify
+npx -y github:s1oopX/agent-memory-workflow status --root "$HOME\.agents"
+npx -y github:s1oopX/agent-memory-workflow status --root "$HOME\.agents" --json
 ```
 
-Verify a target directory:
+### Path Output
+
+```powershell
+npx -y github:s1oopX/agent-memory-workflow show-paths --root "$HOME\.agents"
+npx -y github:s1oopX/agent-memory-workflow show-paths --root "$HOME\.agents" --json
+```
+
+### Import Prompt
+
+```powershell
+npx -y github:s1oopX/agent-memory-workflow import-prompt --root "$HOME\.agents"
+npx -y github:s1oopX/agent-memory-workflow import-prompt --root "$HOME\.agents" --json
+```
+
+### Doctor
+
+```powershell
+npx -y github:s1oopX/agent-memory-workflow doctor --root "$HOME\.agents"
+npx -y github:s1oopX/agent-memory-workflow doctor --root "$HOME\.agents" --json
+```
+
+## PowerShell Script Parameters
+
+Direct initializer usage:
+
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\init-agent-memory-workflow.ps1 `
+  -TargetRoot "$HOME\.agents"
+```
+
+Common parameters:
+
+| Parameter | Meaning |
+| --- | --- |
+| `-TargetRoot <path>` | target `.agents` directory |
+| `-SourceRoot <path>` | repository root containing template source; usually not needed manually |
+| `-Force` | allows overwriting existing workflow-managed files |
+| `-DryRun` | previews only; writes nothing |
+| `-BackupRoot <path>` | uses a specific backup directory |
+| `-NoBackup` | disables backups when overwriting; recommended only for disposable test directories |
+| `-OverwriteMachineFacts` | explicitly allows overwriting existing files under `machine\` |
+| `-SkipVerify` | skips automatic verification after initialization |
+
+Direct verifier usage:
 
 ```powershell
 pwsh -NoProfile -ExecutionPolicy Bypass -File "$HOME\.agents\tools\verify-agent-memory-workflow.ps1" -Root "$HOME\.agents"
 pwsh -NoProfile -ExecutionPolicy Bypass -File "$HOME\.agents\tools\verify-agent-memory-workflow.ps1" -Root "$HOME\.agents" -Json
 ```
 
-Verify repository templates:
+## JSON Output and Automation
 
-```powershell
-npm run verify
+These commands support `--json`:
+
+```text
+preflight
+verify
+status
+show-paths
+import-prompt
+doctor
 ```
 
-Run the full local CI suite:
+JSON output is intended for scripts, CI, editor integrations, and agent automation. Conventions:
+
+- `ok: true` means the check passed.
+- `ok: false` means one or more failures were found.
+- failing commands exit nonzero.
+- the `failures` array contains actionable failure reasons.
+
+Example:
 
 ```powershell
-npm run ci
+npx -y github:s1oopX/agent-memory-workflow doctor --root "$HOME\.agents" --json
 ```
 
-Initialize through the Node wrapper:
+Useful automation fields include:
+
+- `cli_version`
+- `powershell.status`
+- `target.mode`
+- `manifest.version`
+- `paths.bootstrap`
+- `paths.import_prompt`
+- `failures`
+
+## Upgrade and Backup Semantics
+
+Default safety rules:
+
+- plain `init` does not overwrite existing files.
+- `init --dry-run` writes no files.
+- `upgrade` refreshes workflow-managed files.
+- overwrites create backups by default.
+- existing machine facts under `machine\` are preserved by default.
+- machine facts are overwritten only with `--overwrite-machine-facts` or `-OverwriteMachineFacts`.
+- `--no-backup` or `-NoBackup` disables backup protection and should be used only with disposable test directories.
+
+Recommended upgrade flow:
 
 ```powershell
-npx github:s1oopX/agent-memory-workflow init --target "$HOME\.agents"
+npx -y github:s1oopX/agent-memory-workflow init --target "$HOME\.agents" --dry-run --force
+npx -y github:s1oopX/agent-memory-workflow upgrade --target "$HOME\.agents"
+npx -y github:s1oopX/agent-memory-workflow verify --root "$HOME\.agents"
 ```
 
-Preview initialization through the Node wrapper:
+After an upgrade, ask already-connected agents to reimport if the import prompt, manifest, platform adapters, or machine facts changed materially.
 
-```powershell
-npx github:s1oopX/agent-memory-workflow init --target "$HOME\.agents" --dry-run
-```
-
-Run a read-only preflight check before initialization:
-
-```powershell
-npx github:s1oopX/agent-memory-workflow preflight --target "$HOME\.agents"
-npx github:s1oopX/agent-memory-workflow preflight --target "$HOME\.agents" --json
-```
-
-Preflight reports the target directory mode, manifest state, and workflow-managed
-file conflicts in existing non-workflow directories that would block a normal
-initialization.
-
-Upgrade an existing directory through the Node wrapper. This is the safe upgrade
-mode: it overwrites workflow-managed files, creates backups, and preserves
-existing machine facts under `machine\` by default:
-
-```powershell
-npx github:s1oopX/agent-memory-workflow upgrade --target "$HOME\.agents"
-```
-
-Verify through the Node wrapper:
-
-```powershell
-npx github:s1oopX/agent-memory-workflow verify --root "$HOME\.agents"
-npx github:s1oopX/agent-memory-workflow verify --root "$HOME\.agents" --json
-```
-
-Inspect lightweight status for an installed directory:
-
-```powershell
-npx github:s1oopX/agent-memory-workflow status --root "$HOME\.agents"
-npx github:s1oopX/agent-memory-workflow status --root "$HOME\.agents" --json
-```
-
-Print key workflow paths for local-agent handoff or script debugging:
-
-```powershell
-npx github:s1oopX/agent-memory-workflow show-paths --root "$HOME\.agents"
-npx github:s1oopX/agent-memory-workflow show-paths --root "$HOME\.agents" --json
-```
-
-Print the instruction to give to a new local agent:
-
-```powershell
-npx github:s1oopX/agent-memory-workflow import-prompt --root "$HOME\.agents"
-npx github:s1oopX/agent-memory-workflow import-prompt --root "$HOME\.agents" --json
-```
-
-Run diagnostics and delegate to the verifier installed in the target directory:
-
-```powershell
-npx github:s1oopX/agent-memory-workflow doctor --root "$HOME\.agents"
-npx github:s1oopX/agent-memory-workflow doctor --root "$HOME\.agents" --json
-```
-
-Print the CLI version:
-
-```powershell
-npx github:s1oopX/agent-memory-workflow --version
-```
-
-## What the Verifier Checks
+## Verifier Coverage
 
 `verify-agent-memory-workflow.ps1` checks:
 
 - required files exist
-- `workflow-v3` markers are present
+- `workflow-v3` version markers are present
 - core documents reference each other correctly
 - the receipt template contains required fields
 - the manifest parses as JSON
 - manifest paths point to the current target directory
-- adapter categories remain local-only
-- common secret patterns do not appear in shared files
+- manifest adapter categories remain local-only
+- manifest replication and open-source policy fields exist
+- common sensitive information patterns do not appear in shared files
 
-The verifier is not a substitute for human review. Before publishing, sharing,
-or committing machine-specific files, manually confirm that no private facts or
-secrets are present.
+The verifier is not a substitute for human review. Before publishing, committing, copying, or asking an agent to import files, manually confirm that no credentials, private path policies, private import receipts, or temporary session logs are present.
 
 ## Security Boundary
 
-Shared memory files may record:
+Shared memory may record:
 
 - tool names and versions
 - non-secret PATH or shell behavior differences
@@ -444,8 +612,9 @@ Shared memory files may record:
 - build-tool availability
 - agent execution policies
 - local directory maintenance rules
+- known risk items and handling strategy
 
-Shared memory files must not record:
+Shared memory must not record:
 
 - passwords
 - API tokens
@@ -455,9 +624,9 @@ Shared memory files must not record:
 - Redis, MySQL, or other service secrets
 - private chat transcripts
 - temporary session logs
+- unapproved private organization information
 
-If a task needs credentials, use an approved local credential mechanism or ask
-the user during that task. Do not write credentials into shared memory.
+If a task needs credentials, use a user-approved local credential mechanism or ask the user during that task. Do not write credentials into `.agents`.
 
 ## Maintenance Policy
 
@@ -466,72 +635,215 @@ Run the verifier after:
 - editing machine facts under `machine/`
 - changing the import prompt or receipt template
 - changing the manifest
-- changing the initializer or verifier scripts
-- preparing a release or commit
+- changing initializer, verifier, or CLI behavior
+- preparing a commit, release, or machine migration
 
-When upgrading an existing `.agents` directory, run `-DryRun` first to inspect
-which files will be created, overwritten, or preserved. With `-Force`, the script
-backs up overwritten files and preserves existing machine facts under `machine\`
-by default; those files are overwritten only when `-OverwriteMachineFacts` is
-passed explicitly. `-NoBackup` disables backup protection and should be used only
-with disposable directories.
-
-Ask agents to reimport when:
+Ask agents to reimport after:
 
 - the workflow version changes
 - `AGENT_MEMORY_IMPORT_PROMPT.md` changes
 - `AGENT_MEMORY_WORKFLOW_MANIFEST.json` changes
-- machine facts materially change
-- platform adapter guidance changes
+- `AGENT_PLATFORM_ADAPTERS.md` changes
+- facts under `machine/` change materially
+- verifier rules change
 
-## Design Principles
+Maintenance principles:
 
-- Local-first: the source of truth lives in the user's filesystem.
-- Inspectable files: Markdown and JSON are preferred over hidden storage.
-- Agent-neutral: the protocol is not bound to one agent product.
-- Verifiable: structure, versions, references, and common risks are checked.
-- No secrets: shared memory stores only non-secret, durable facts.
-- Reproducible: each machine generates its own instance instead of publishing
-  personal machine facts.
+- verify before import
+- dry run before upgrade
+- back up before overwrite
+- preserve machine facts by default
+- prefer not writing sensitive data over relying on later cleanup
 
-## Why Not a Database or SDK
+## Quality Gates
 
-At this stage, the most important requirement is reproducible local machine
-context for local agents. A file protocol is easier to inspect, copy, edit, and
-roll back than a database or SDK.
+The repository provides local CI:
 
-An SDK becomes useful after a stable application or integration boundary exists.
-A database is useful when concurrent writes, queries, or synchronization become
-requirements, but it increases deployment and review complexity. The current
-release uses a file protocol to keep dependencies low and behavior explicit.
+```powershell
+npm run ci
+```
 
-## Publishing and Reproduction Contract
+It runs:
 
-The public repository publishes the protocol, templates, initializer, and
-verifier. It does not publish one person's private `.agents` instance.
+```text
+node --check ./bin/agent-memory-workflow.js
+pwsh ... verify-agent-memory-workflow.ps1 -Root ./templates -TemplateMode
+pwsh ... test-agent-memory-workflow.ps1
+npm pack --dry-run
+```
 
-Users should generate their own local instance and fill in their own machine
-facts. Real credentials, private path policies, private import receipts, and
-temporary session logs should never be published as public templates.
+Key behavior covered:
+
+- fresh directory initialization
+- successful dry run and conflicting dry-run failure
+- workflow-managed file conflict detection in non-workflow targets
+- `--force` preserving machine facts by default
+- explicit machine-fact overwrite
+- safe `upgrade`
+- `verify --json`
+- `status --json`
+- `show-paths --json`
+- `import-prompt --json`
+- `doctor --json`
+- unknown option rejection
+- npm package content preflight
+
+## Reproduction Contract
+
+The public repository publishes:
+
+- protocol documentation
+- generic templates
+- initializer script
+- verifier script
+- Node CLI wrapper
+- tests and CI configuration
+
+The public repository does not publish:
+
+- one person's private `.agents` instance
+- private path policies
+- private import receipts
+- credentials or service secrets
+- temporary session logs
+
+A new user should be able to:
+
+1. Clone the repository or run it through `npx`.
+2. Run `preflight`.
+3. Run `init`.
+4. Fill in their own machine facts.
+5. Run `verify`.
+6. Give the import prompt to a local agent.
+7. Receive a structured import receipt.
+
+## Design Tradeoffs
+
+### Why a File Protocol
+
+A file protocol has practical advantages:
+
+- Markdown and JSON are directly reviewable.
+- No database service is required.
+- The workflow is not bound to one agent product.
+- Backups, diffs, rollbacks, and migration stay simple.
+- Agents can integrate through ordinary file reads.
+- Humans can directly correct inaccurate facts.
+
+### Why Not a Database
+
+Databases are useful for concurrent writes, complex queries, and multi-device synchronization, but they add deployment, backup, permission, and review costs. The current goal is reliable local machine context for local agents; a file protocol is more direct.
+
+### Why Not an SDK
+
+An SDK becomes useful after stable application boundaries exist. At this stage, stabilizing the protocol, templates, verifier, and CLI behavior matters more. If multiple local tools later need programmatic access to the same verified state, an SDK will be a more natural next step.
+
+### Why Not Just One Prompt
+
+A single prompt easily loses source, versioning, verification, and maintenance boundaries. This project keeps the prompt inside a file protocol and requires:
+
+- bootstrap
+- manifest
+- verifier
+- import receipt
+- reimport rules
+- security boundary
+- upgrade and backup semantics
+
+## FAQ
+
+### Does this make every agent automatically gain long-term memory?
+
+No. It provides a local source of truth and import protocol. Durable storage depends on whether the specific agent offers persistent memory, rules, configuration, or startup instructions.
+
+### What if an agent can only remember the current chat?
+
+It must mark `chat_local_only` in the receipt and must not claim that durable import is complete.
+
+### Where should `.agents` live?
+
+The default is `$HOME\.agents`. It is a user-level, durable, reviewable location. You can choose a different directory with `--target`.
+
+### Can real machine facts be committed to this repository?
+
+No. The public repository should contain only generic templates and tools. Real machine facts belong to each user's local instance.
+
+### Can Docker, databases, or service startup preferences be recorded?
+
+Non-secret policy can be recorded, such as "Docker should not auto-start." Passwords, tokens, connection secrets, and private service details must not be recorded.
+
+### When should `upgrade` be used?
+
+Use it when templates, import protocol, verifier, or CLI behavior has a new version and you want to refresh an existing `.agents` directory. Run a dry run first.
+
+### What is the difference between `preflight` and `verify`?
+
+`preflight` runs before initialization and checks runtime, packaged source, and target directory state. `verify` runs after a directory exists and checks installed workflow structure, references, manifest, and common risks.
+
+### Should a new agent re-audit the whole environment every time?
+
+No. Ordinary tasks should read the bootstrap and machine files first. Re-audit only when the user asks for it or when the machine facts are clearly stale.
+
+## Developer Guide
+
+Local development:
+
+```powershell
+git clone https://github.com/s1oopX/agent-memory-workflow.git
+cd agent-memory-workflow
+npm run ci
+```
+
+Individual checks:
+
+```powershell
+npm run check
+npm run verify
+npm test
+npm run pack:dry-run
+```
+
+Behavior changes should update the relevant files:
+
+- `bin/agent-memory-workflow.js`
+- `tools/init-agent-memory-workflow.ps1`
+- `tools/verify-agent-memory-workflow.ps1`
+- `tools/test-agent-memory-workflow.ps1`
+- `templates/`
+- `README.md`
+- `README.en.md`
+- `CHANGELOG.md`
+
+Before release:
+
+```powershell
+npm run ci
+npx -y github:s1oopX/agent-memory-workflow#<tag> --version
+```
+
+Security-sensitive changes also require manual review for private paths, credentials, and service secrets in templates.
 
 ## Roadmap
 
 Short term:
 
-- improve README and template documentation
-- improve verifier error messages
-- add more local-agent adapter guidance
+- continue improving preflight and diagnostic output
+- improve verifier failure messages
+- add more local-agent adapter examples
+- strengthen documentation troubleshooting paths
 
 Medium term:
 
-- strengthen machine-readable CLI output
-- strengthen preflight checks before initialization
-- add migration helpers for future workflow-version changes
+- add adapter guidance for more local agent types
+- add stricter manifest/source consistency checks
+- add version migration helpers
+- improve machine-readable output stability
 
 Long term:
 
-- evaluate an SDK after a stable integration boundary exists
-- add stricter import auditing for multi-agent local workflows
+- evaluate a lightweight SDK after the protocol stabilizes
+- support richer local import auditing
+- provide a clearer state model for multi-agent local collaboration
 
 ## Contributing
 
@@ -540,18 +852,17 @@ Issues and pull requests are welcome. Useful contribution areas include:
 - clearer documentation and examples
 - local-agent adapter guidance
 - PowerShell initializer and verifier improvements
-- stronger security scanning rules
+- stronger safety scanning rules
 - cross-platform path handling improvements
+- CLI JSON output and automation improvements
 
-Before submitting a contribution, run:
+Before contributing, run:
 
 ```powershell
-npm run verify
+npm run ci
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the full contribution workflow.
-Report security-sensitive issues through [SECURITY.md](SECURITY.md); do not
-disclose credentials or private machine facts in public issues.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full contribution flow. For security-sensitive reports, follow [SECURITY.md](SECURITY.md) and do not disclose credentials, private machine facts, or private path policies in public issues.
 
 ## License
 

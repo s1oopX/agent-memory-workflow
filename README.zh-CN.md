@@ -28,7 +28,7 @@ npx -y github:s1oopX/agent-memory-workflow verify --root "$HOME\.agents"
 如果需要严格复现某个已发布版本，请在 GitHub Releases 中选择固定 tag，例如：
 
 ```powershell
-npx -y github:s1oopX/agent-memory-workflow#v0.1.16 --version
+npx -y github:s1oopX/agent-memory-workflow#v0.1.17 --version
 ```
 
 ## 目录
@@ -221,8 +221,8 @@ npm run verify
 适合教程、自动化脚本和可审计环境：
 
 ```powershell
-npx -y github:s1oopX/agent-memory-workflow#v0.1.16 preflight --target "$HOME\.agents"
-npx -y github:s1oopX/agent-memory-workflow#v0.1.16 init --target "$HOME\.agents"
+npx -y github:s1oopX/agent-memory-workflow#v0.1.17 preflight --target "$HOME\.agents"
+npx -y github:s1oopX/agent-memory-workflow#v0.1.17 init --target "$HOME\.agents"
 ```
 
 固定 tag 能避免默认分支变化影响你的脚本。正式环境建议固定 tag。
