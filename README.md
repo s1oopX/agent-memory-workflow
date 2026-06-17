@@ -25,10 +25,16 @@ npx -y github:s1oopX/agent-memory-workflow init --target "$HOME\.agents"
 npx -y github:s1oopX/agent-memory-workflow verify --root "$HOME\.agents"
 ```
 
+如果你只关心本地 Agent 的实际落地路径，先读：
+
+```text
+LOCAL_USAGE_GUIDE.md
+```
+
 如果需要严格复现某个已发布版本，请在 GitHub Releases 中选择固定 tag，例如：
 
 ```powershell
-npx -y github:s1oopX/agent-memory-workflow#v0.1.18 --version
+npx -y github:s1oopX/agent-memory-workflow#v0.1.20 --version
 ```
 
 ## 目录
@@ -37,6 +43,7 @@ npx -y github:s1oopX/agent-memory-workflow#v0.1.18 --version
 - [适合场景](#适合场景)
 - [不适合场景](#不适合场景)
 - [工作流总览](#工作流总览)
+- [本地优先使用指南](#本地优先使用指南)
 - [一分钟开始](#一分钟开始)
 - [安装方式](#安装方式)
 - [初始化后的必填内容](#初始化后的必填内容)
@@ -151,6 +158,27 @@ flowchart TD
 | 回执 | `AGENT_MEMORY_IMPORT_RECEIPT_TEMPLATE.md` | 明确说明读了什么、写到哪里、是否持久 |
 | 维护 | `status`、`doctor`、`upgrade` | 目录可诊断、可升级、可重新导入 |
 
+## 本地优先使用指南
+
+如果你的目标很明确，就是把这套工作流稳定用于本地 Agent，而不是扩展到远程或托管场景，先读 [LOCAL_USAGE_GUIDE.md](LOCAL_USAGE_GUIDE.md)。
+
+这份独立指南把下面这些最容易分散的信息合并成了一条路径：
+
+- 普通本地用户、严格复现用户、模板维护者分别该选哪种安装路径
+- `npx`、固定 tag、克隆仓库三种方式的边界
+- 文件协议、CLI、Skill、SDK 的推荐先后顺序
+- 不同本地 Agent 应该把长期记忆写到哪里
+- 什么叫真正导入成功，什么情况只能算 `chat_local_only`
+- 升级、重导入和回执保留应该怎样形成固定循环
+
+如果你只想尽快落地，最短路线仍然是：
+
+1. 用 `npx` 或固定 tag 初始化 `$HOME\.agents`。
+2. 填写 `machine\` 下的稳定机器事实。
+3. 运行 `verify`。
+4. 把 `AGENT_MEMORY_IMPORT_PROMPT.md` 交给新的本地 Agent。
+5. 要求它返回结构化导入回执。
+
 ## 一分钟开始
 
 前提：
@@ -221,8 +249,8 @@ npm run verify
 适合教程、自动化脚本和可审计环境：
 
 ```powershell
-npx -y github:s1oopX/agent-memory-workflow#v0.1.18 preflight --target "$HOME\.agents"
-npx -y github:s1oopX/agent-memory-workflow#v0.1.18 init --target "$HOME\.agents"
+npx -y github:s1oopX/agent-memory-workflow#v0.1.20 preflight --target "$HOME\.agents"
+npx -y github:s1oopX/agent-memory-workflow#v0.1.20 init --target "$HOME\.agents"
 ```
 
 固定 tag 能避免默认分支变化影响你的脚本。正式环境建议固定 tag。

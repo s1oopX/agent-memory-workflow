@@ -25,10 +25,16 @@ npx -y github:s1oopX/agent-memory-workflow init --target "$HOME\.agents"
 npx -y github:s1oopX/agent-memory-workflow verify --root "$HOME\.agents"
 ```
 
+If your only concern is the practical local-agent path, start with:
+
+```text
+LOCAL_USAGE_GUIDE.en.md
+```
+
 For strict reproducibility, use a fixed GitHub release tag:
 
 ```powershell
-npx -y github:s1oopX/agent-memory-workflow#v0.1.18 --version
+npx -y github:s1oopX/agent-memory-workflow#v0.1.20 --version
 ```
 
 ## Table of Contents
@@ -37,6 +43,7 @@ npx -y github:s1oopX/agent-memory-workflow#v0.1.18 --version
 - [Fit](#fit)
 - [Non-Goals](#non-goals)
 - [Workflow Overview](#workflow-overview)
+- [Local-First Usage Guide](#local-first-usage-guide)
 - [One-Minute Start](#one-minute-start)
 - [Installation Paths](#installation-paths)
 - [Required Edits After Initialization](#required-edits-after-initialization)
@@ -151,6 +158,30 @@ Each stage has a clear input, output, and pass condition:
 | Receipt | `AGENT_MEMORY_IMPORT_RECEIPT_TEMPLATE.md` | receipt states what was read, where memory was written, and whether it is durable |
 | Maintain | `status`, `doctor`, `upgrade` | directory remains diagnosable, upgradable, and reimportable |
 
+## Local-First Usage Guide
+
+If your goal is simply to operate this workflow well for local agents, rather
+than extend it toward remote or hosted scenarios, start with
+[LOCAL_USAGE_GUIDE.en.md](LOCAL_USAGE_GUIDE.en.md).
+
+That guide consolidates the pieces that are otherwise spread across the README
+and templates:
+
+- which installation path fits normal users, strict reproducibility, or template maintainers
+- the boundary between `npx`, fixed-tag, and cloned-repository usage
+- the recommended order of file protocol, CLI, skill, and SDK layers
+- where different kinds of local agents should store durable memory
+- what counts as a real successful import versus `chat_local_only`
+- how upgrades, reimports, and receipts should form a stable maintenance loop
+
+If you only want the shortest implementation path, it is still:
+
+1. Initialize `$HOME\.agents` with `npx` or a fixed tag.
+2. Fill the stable machine facts under `machine\`.
+3. Run `verify`.
+4. Give `AGENT_MEMORY_IMPORT_PROMPT.md` to the new local agent.
+5. Require a structured import receipt.
+
 ## One-Minute Start
 
 Requirements:
@@ -221,8 +252,8 @@ npm run verify
 Best for tutorials, automation scripts, and auditable environments:
 
 ```powershell
-npx -y github:s1oopX/agent-memory-workflow#v0.1.18 preflight --target "$HOME\.agents"
-npx -y github:s1oopX/agent-memory-workflow#v0.1.18 init --target "$HOME\.agents"
+npx -y github:s1oopX/agent-memory-workflow#v0.1.20 preflight --target "$HOME\.agents"
+npx -y github:s1oopX/agent-memory-workflow#v0.1.20 init --target "$HOME\.agents"
 ```
 
 Pinning a tag prevents default-branch changes from changing script behavior. Production-like usage should pin a tag.

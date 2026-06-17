@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.20 - 2026-06-17
+
+- Added dedicated local-first usage guides in Chinese and English that turn the
+  distributed local workflow guidance into one operator-facing path.
+- Linked the new guide from the Chinese and English READMEs and clarified the
+  recommended order of file protocol, CLI, skill adapters, and SDK work.
+- Updated fixed-tag documentation examples to `v0.1.20`.
+
 ## 0.1.19 - 2026-06-17
 
 - Documented the `preflight --json` managed-source fields in the Chinese and

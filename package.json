@@ -1,6 +1,6 @@
 {
   "name": "agent-memory-workflow",
-  "version": "0.1.19",
+  "version": "0.1.20",
   "description": "Local-first file protocol for shared agent memory.",
   "license": "MIT",
   "type": "commonjs",
@@ -14,6 +14,9 @@
     "README.md",
     "README.en.md",
     "README.zh-CN.md",
+    "LOCAL_USAGE_GUIDE.md",
+    "LOCAL_USAGE_GUIDE.en.md",
+    "LOCAL_USAGE_GUIDE.zh-CN.md",
     "CONTRIBUTING.md",
     "SECURITY.md",
     "LICENSE",
