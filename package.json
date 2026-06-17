@@ -12,6 +12,8 @@
     "tools",
     "templates",
     "README.md",
+    "README.en.md",
+    "README.zh-CN.md",
     "LICENSE",
     "CHANGELOG.md"
   ],
