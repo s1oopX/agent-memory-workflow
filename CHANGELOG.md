@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.16 - 2026-06-17
+
+- Expanded the default Chinese README into a formal project homepage with
+  clearer positioning, installation paths, lifecycle guidance, command
+  reference, safety boundaries, maintenance policy, quality gates, and
+  reproduction contract.
+- Synchronized `README.zh-CN.md` with the default Chinese README.
+
 ## 0.1.15 - 2026-06-17
 
 - Changed dry-run initialization to exit nonzero when the simulated operation
