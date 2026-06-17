@@ -348,6 +348,7 @@ Run a read-only preflight check before initialization:
 
 ```powershell
 npx github:s1oopX/agent-memory-workflow preflight --target "$HOME\.agents"
+npx github:s1oopX/agent-memory-workflow preflight --target "$HOME\.agents" --json
 ```
 
 Upgrade an existing directory through the Node wrapper. This is the safe upgrade
@@ -368,12 +369,14 @@ Inspect lightweight status for an installed directory:
 
 ```powershell
 npx github:s1oopX/agent-memory-workflow status --root "$HOME\.agents"
+npx github:s1oopX/agent-memory-workflow status --root "$HOME\.agents" --json
 ```
 
 Print key workflow paths for local-agent handoff or script debugging:
 
 ```powershell
 npx github:s1oopX/agent-memory-workflow show-paths --root "$HOME\.agents"
+npx github:s1oopX/agent-memory-workflow show-paths --root "$HOME\.agents" --json
 ```
 
 Run diagnostics and delegate to the verifier installed in the target directory:
@@ -496,7 +499,7 @@ Short term:
 
 Medium term:
 
-- provide a more complete CLI experience
+- strengthen machine-readable CLI output
 - strengthen preflight checks before initialization
 - add migration helpers for future workflow-version changes
 

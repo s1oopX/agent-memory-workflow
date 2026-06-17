@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.8 - 2026-06-17
+
+- Added `--json` output for `preflight`, `status`, and `show-paths`.
+- Added smoke tests that parse JSON output with PowerShell.
+- Documented machine-readable CLI output in the Chinese and English READMEs.
+
 ## 0.1.7 - 2026-06-17
 
 - Added a read-only CLI `preflight` command that checks runtime prerequisites,

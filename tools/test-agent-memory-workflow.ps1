@@ -90,6 +90,13 @@ try {
         Assert-TextContains -Text $preflightOutput -Needle "Target exists: no" -Context "fresh preflight output"
         Assert-TextContains -Text $preflightOutput -Needle "Target mode: fresh install" -Context "fresh preflight output"
         Assert-TextContains -Text $preflightOutput -Needle "Result: PASS" -Context "fresh preflight output"
+
+        $preflightJsonText = (& node $cliScript preflight --target $dryRunTarget --json) -join "`n"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        $preflightJson = $preflightJsonText | ConvertFrom-Json
+        if (-not $preflightJson.ok -or $preflightJson.target.mode -ne "fresh install") {
+            throw "Unexpected fresh preflight JSON: $preflightJsonText"
+        }
     }
 
     Invoke-Step "force preserves machine facts by default" {
@@ -153,6 +160,13 @@ try {
         Assert-TextContains -Text $statusOutput -Needle "Workflow version: workflow-v3" -Context "status output"
         Assert-TextContains -Text $statusOutput -Needle "Bootstrap: present" -Context "status output"
         Assert-TextContains -Text $statusOutput -Needle "Verifier: present" -Context "status output"
+
+        $statusJsonText = (& node $cliScript status --root $target --json) -join "`n"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        $statusJson = $statusJsonText | ConvertFrom-Json
+        if (-not $statusJson.ok -or $statusJson.manifest.version -ne "workflow-v3") {
+            throw "Unexpected status JSON: $statusJsonText"
+        }
     }
 
     Invoke-Step "node wrapper prints workflow paths" {
@@ -161,6 +175,13 @@ try {
         Assert-TextContains -Text $pathsOutput -Needle "bootstrap=" -Context "show-paths output"
         Assert-TextContains -Text $pathsOutput -Needle "manifest=" -Context "show-paths output"
         Assert-TextContains -Text $pathsOutput -Needle "verifier=" -Context "show-paths output"
+
+        $pathsJsonText = (& node $cliScript show-paths --root $target --json) -join "`n"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        $pathsJson = $pathsJsonText | ConvertFrom-Json
+        if (-not $pathsJson.paths.bootstrap -or -not $pathsJson.paths.verifier) {
+            throw "Unexpected show-paths JSON: $pathsJsonText"
+        }
     }
 
     Invoke-Step "node wrapper doctor runs verifier" {

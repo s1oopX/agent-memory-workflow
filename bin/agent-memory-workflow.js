@@ -14,10 +14,10 @@ function usage() {
 Usage:
   agent-memory-workflow init [--target <path>] [--force] [--dry-run] [--backup-root <path>] [--no-backup] [--overwrite-machine-facts] [--skip-verify]
   agent-memory-workflow upgrade [--target <path>] [--dry-run] [--backup-root <path>] [--no-backup] [--overwrite-machine-facts] [--skip-verify]
-  agent-memory-workflow preflight [--target <path>]
+  agent-memory-workflow preflight [--target <path>] [--json]
   agent-memory-workflow verify [--root <path>]
-  agent-memory-workflow status [--root <path>]
-  agent-memory-workflow show-paths [--root <path>]
+  agent-memory-workflow status [--root <path>] [--json]
+  agent-memory-workflow show-paths [--root <path>] [--json]
   agent-memory-workflow doctor [--root <path>]
 
 Examples:
@@ -123,48 +123,112 @@ function formatPresent(filePath) {
   return exists(filePath) ? "present" : "missing";
 }
 
-function printStatus(root) {
+function fileStatus(filePath) {
+  return {
+    path: filePath,
+    status: formatPresent(filePath),
+  };
+}
+
+function printJson(value) {
+  console.log(JSON.stringify(value, null, 2));
+}
+
+function buildStatus(root) {
   const resolvedRoot = path.resolve(root);
   const paths = workflowPaths(resolvedRoot);
   const manifest = readManifest(paths.manifest);
   const machineFiles = [paths.machineMemory, paths.quickReference, paths.homeMap];
   const presentMachineFiles = machineFiles.filter(exists).length;
 
-  console.log("Agent memory workflow status");
-  console.log(`Root: ${resolvedRoot}`);
-  console.log(`Root exists: ${exists(resolvedRoot) ? "yes" : "no"}`);
-  console.log(`Manifest: ${formatPresent(paths.manifest)}`);
-  if (manifest?.parseError) {
-    console.log(`Manifest parse: failed (${manifest.parseError})`);
-  } else if (manifest) {
-    console.log(`Workflow version: ${manifest.version ?? "unknown"}`);
-    console.log(`Owner user: ${manifest.owner_user ?? "unknown"}`);
-    console.log(`OS: ${manifest.os_name ?? "unknown"}`);
-  }
-  console.log(`Bootstrap: ${formatPresent(paths.bootstrap)}`);
-  console.log(`Import prompt: ${formatPresent(paths.importPrompt)}`);
-  console.log(`Receipt template: ${formatPresent(paths.receiptTemplate)}`);
-  console.log(`Machine facts: ${presentMachineFiles}/${machineFiles.length} key files present`);
-  console.log(`Verifier: ${formatPresent(paths.verifier)}`);
-  console.log(`Initializer: ${formatPresent(paths.initializer)}`);
-  console.log("Run doctor: agent-memory-workflow doctor --root <path>");
+  return {
+    command: "status",
+    ok: exists(resolvedRoot) && Boolean(manifest) && !manifest?.parseError,
+    root: resolvedRoot,
+    root_exists: exists(resolvedRoot),
+    manifest: {
+      path: paths.manifest,
+      status: formatPresent(paths.manifest),
+      parse_error: manifest?.parseError ?? null,
+      version: manifest && !manifest.parseError ? manifest.version ?? null : null,
+      owner_user: manifest && !manifest.parseError ? manifest.owner_user ?? null : null,
+      os_name: manifest && !manifest.parseError ? manifest.os_name ?? null : null,
+    },
+    files: {
+      bootstrap: fileStatus(paths.bootstrap),
+      import_prompt: fileStatus(paths.importPrompt),
+      receipt_template: fileStatus(paths.receiptTemplate),
+      verifier: fileStatus(paths.verifier),
+      initializer: fileStatus(paths.initializer),
+    },
+    machine_facts: {
+      present: presentMachineFiles,
+      total: machineFiles.length,
+      files: machineFiles.map(fileStatus),
+    },
+    next_command: "agent-memory-workflow doctor --root <path>",
+  };
 }
 
-function printPaths(root) {
+function printStatus(root, { json = false } = {}) {
+  const status = buildStatus(root);
+  if (json) {
+    printJson(status);
+    return;
+  }
+
+  console.log("Agent memory workflow status");
+  console.log(`Root: ${status.root}`);
+  console.log(`Root exists: ${status.root_exists ? "yes" : "no"}`);
+  console.log(`Manifest: ${status.manifest.status}`);
+  if (status.manifest.parse_error) {
+    console.log(`Manifest parse: failed (${status.manifest.parse_error})`);
+  } else if (status.manifest.status === "present") {
+    console.log(`Workflow version: ${status.manifest.version ?? "unknown"}`);
+    console.log(`Owner user: ${status.manifest.owner_user ?? "unknown"}`);
+    console.log(`OS: ${status.manifest.os_name ?? "unknown"}`);
+  }
+  console.log(`Bootstrap: ${status.files.bootstrap.status}`);
+  console.log(`Import prompt: ${status.files.import_prompt.status}`);
+  console.log(`Receipt template: ${status.files.receipt_template.status}`);
+  console.log(`Machine facts: ${status.machine_facts.present}/${status.machine_facts.total} key files present`);
+  console.log(`Verifier: ${status.files.verifier.status}`);
+  console.log(`Initializer: ${status.files.initializer.status}`);
+  console.log(`Run doctor: ${status.next_command}`);
+}
+
+function buildPaths(root) {
   const resolvedRoot = path.resolve(root);
   const paths = workflowPaths(resolvedRoot);
-  console.log(`root=${paths.root}`);
-  console.log(`bootstrap=${paths.bootstrap}`);
-  console.log(`import_prompt=${paths.importPrompt}`);
-  console.log(`receipt_template=${paths.receiptTemplate}`);
-  console.log(`manifest=${paths.manifest}`);
-  console.log(`import_registry=${paths.importRegistry}`);
-  console.log(`machine=${paths.machine}`);
-  console.log(`machine_memory=${paths.machineMemory}`);
-  console.log(`quick_reference=${paths.quickReference}`);
-  console.log(`home_map=${paths.homeMap}`);
-  console.log(`verifier=${paths.verifier}`);
-  console.log(`initializer=${paths.initializer}`);
+  return {
+    command: "show-paths",
+    paths: {
+      root: paths.root,
+      bootstrap: paths.bootstrap,
+      import_prompt: paths.importPrompt,
+      receipt_template: paths.receiptTemplate,
+      manifest: paths.manifest,
+      import_registry: paths.importRegistry,
+      machine: paths.machine,
+      machine_memory: paths.machineMemory,
+      quick_reference: paths.quickReference,
+      home_map: paths.homeMap,
+      verifier: paths.verifier,
+      initializer: paths.initializer,
+    },
+  };
+}
+
+function printPaths(root, { json = false } = {}) {
+  const result = buildPaths(root);
+  if (json) {
+    printJson(result);
+    return;
+  }
+
+  for (const [key, value] of Object.entries(result.paths)) {
+    console.log(`${key}=${value}`);
+  }
 }
 
 function sourcePaths() {
@@ -176,31 +240,23 @@ function sourcePaths() {
   };
 }
 
-function runPreflight(target) {
+function buildPreflight(target) {
   const resolvedTarget = path.resolve(target);
   const paths = workflowPaths(resolvedTarget);
   const sources = sourcePaths();
   const failures = [];
-
-  console.log("Agent memory workflow preflight");
-  console.log(`CLI version: ${packageJson.version}`);
-  console.log(`Node: ${process.version}`);
+  let powershell = { status: "available", version: null, error: null };
 
   const pwshVersion = spawnSync("pwsh", ["--version"], { encoding: "utf8" });
   if (pwshVersion.error && pwshVersion.error.code === "ENOENT") {
     failures.push("PowerShell 7 executable `pwsh` was not found on PATH.");
-    console.log("PowerShell: missing");
+    powershell = { status: "missing", version: null, error: failures[failures.length - 1] };
   } else if (pwshVersion.error) {
     failures.push(pwshVersion.error.message);
-    console.log("PowerShell: error");
+    powershell = { status: "error", version: null, error: pwshVersion.error.message };
   } else {
-    console.log(`PowerShell: ${pwshVersion.stdout.trim() || "available"}`);
+    powershell = { status: "available", version: pwshVersion.stdout.trim() || null, error: null };
   }
-
-  console.log(`Source templates: ${formatPresent(sources.templates)}`);
-  console.log(`Bootstrap template: ${formatPresent(sources.bootstrapTemplate)}`);
-  console.log(`Source initializer: ${formatPresent(sources.initializer)}`);
-  console.log(`Source verifier: ${formatPresent(sources.verifier)}`);
 
   if (!exists(sources.templates)) failures.push(`Missing source templates: ${sources.templates}`);
   if (!exists(sources.bootstrapTemplate)) failures.push(`Missing bootstrap template: ${sources.bootstrapTemplate}`);
@@ -208,26 +264,74 @@ function runPreflight(target) {
   if (!exists(sources.verifier)) failures.push(`Missing source verifier: ${sources.verifier}`);
 
   const manifest = readManifest(paths.manifest);
-  console.log(`Target: ${resolvedTarget}`);
-  console.log(`Target exists: ${exists(resolvedTarget) ? "yes" : "no"}`);
-  console.log(`Target manifest: ${formatPresent(paths.manifest)}`);
-  if (manifest?.parseError) {
-    console.log(`Target manifest parse: failed (${manifest.parseError})`);
-  } else if (manifest) {
-    console.log(`Target workflow version: ${manifest.version ?? "unknown"}`);
+  const targetExists = exists(resolvedTarget);
+  let targetMode = "fresh install";
+  if (targetExists && manifest && !manifest.parseError) {
+    targetMode = "existing workflow";
+  } else if (targetExists) {
+    targetMode = "existing non-workflow directory";
   }
 
-  if (!exists(resolvedTarget)) {
-    console.log("Target mode: fresh install");
-  } else if (manifest) {
-    console.log("Target mode: existing workflow");
+  return {
+    command: "preflight",
+    ok: failures.length === 0,
+    cli_version: packageJson.version,
+    node: process.version,
+    powershell,
+    sources: {
+      templates: fileStatus(sources.templates),
+      bootstrap_template: fileStatus(sources.bootstrapTemplate),
+      initializer: fileStatus(sources.initializer),
+      verifier: fileStatus(sources.verifier),
+    },
+    target: {
+      path: resolvedTarget,
+      exists: targetExists,
+      mode: targetMode,
+      manifest: {
+        path: paths.manifest,
+        status: formatPresent(paths.manifest),
+        parse_error: manifest?.parseError ?? null,
+        version: manifest && !manifest.parseError ? manifest.version ?? null : null,
+      },
+    },
+    failures,
+  };
+}
+
+function runPreflight(target, { json = false } = {}) {
+  const result = buildPreflight(target);
+  if (json) {
+    printJson(result);
+    if (!result.ok) process.exit(1);
+    return;
+  }
+
+  console.log("Agent memory workflow preflight");
+  console.log(`CLI version: ${result.cli_version}`);
+  console.log(`Node: ${result.node}`);
+  if (result.powershell.status === "available") {
+    console.log(`PowerShell: ${result.powershell.version ?? "available"}`);
   } else {
-    console.log("Target mode: existing non-workflow directory");
+    console.log(`PowerShell: ${result.powershell.status}`);
   }
+  console.log(`Source templates: ${result.sources.templates.status}`);
+  console.log(`Bootstrap template: ${result.sources.bootstrap_template.status}`);
+  console.log(`Source initializer: ${result.sources.initializer.status}`);
+  console.log(`Source verifier: ${result.sources.verifier.status}`);
+  console.log(`Target: ${result.target.path}`);
+  console.log(`Target exists: ${result.target.exists ? "yes" : "no"}`);
+  console.log(`Target manifest: ${result.target.manifest.status}`);
+  if (result.target.manifest.parse_error) {
+    console.log(`Target manifest parse: failed (${result.target.manifest.parse_error})`);
+  } else if (result.target.manifest.version) {
+    console.log(`Target workflow version: ${result.target.manifest.version}`);
+  }
+  console.log(`Target mode: ${result.target.mode}`);
 
-  if (failures.length > 0) {
+  if (!result.ok) {
     console.log("Result: FAIL");
-    for (const failure of failures) {
+    for (const failure of result.failures) {
       console.log(`- ${failure}`);
     }
     process.exit(1);
@@ -313,9 +417,9 @@ function main() {
   }
 
   if (command === "preflight") {
-    validateOptions(args, { valueOptions: ["--target"] });
+    validateOptions(args, { valueOptions: ["--target"], flagOptions: ["--json"] });
     const target = readOption(args, "--target", path.join(os.homedir(), ".agents"));
-    runPreflight(target);
+    runPreflight(target, { json: args.includes("--json") });
     return;
   }
 
@@ -333,16 +437,16 @@ function main() {
   }
 
   if (command === "status") {
-    validateOptions(args, { valueOptions: ["--root"] });
+    validateOptions(args, { valueOptions: ["--root"], flagOptions: ["--json"] });
     const root = readOption(args, "--root", path.join(os.homedir(), ".agents"));
-    printStatus(root);
+    printStatus(root, { json: args.includes("--json") });
     return;
   }
 
   if (command === "show-paths") {
-    validateOptions(args, { valueOptions: ["--root"] });
+    validateOptions(args, { valueOptions: ["--root"], flagOptions: ["--json"] });
     const root = readOption(args, "--root", path.join(os.homedir(), ".agents"));
-    printPaths(root);
+    printPaths(root, { json: args.includes("--json") });
     return;
   }
 
