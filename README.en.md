@@ -94,6 +94,8 @@ The source of truth is always the user's local `.agents` directory.
 | Automated verification | GitHub Actions + `npm run ci` |
 | Default scenario | Windows local-agent workflows |
 | License | MIT |
+| Security policy | [SECURITY.md](SECURITY.md) |
+| Contribution guide | [CONTRIBUTING.md](CONTRIBUTING.md) |
 
 ## Core Concepts
 
@@ -480,6 +482,10 @@ Before submitting a contribution, run:
 ```powershell
 npm run verify
 ```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full contribution workflow.
+Report security-sensitive issues through [SECURITY.md](SECURITY.md); do not
+disclose credentials or private machine facts in public issues.
 
 ## License
 

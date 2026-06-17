@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2 - 2026-06-17
+
+- Added issue templates, a pull request template, `CONTRIBUTING.md`, and
+  `SECURITY.md`.
+
 ## 0.1.1 - 2026-06-17
 
 - Added GitHub Actions CI for pull requests and pushes to `main`.
