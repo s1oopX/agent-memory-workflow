@@ -158,7 +158,7 @@ npx github:s1oopX/agent-memory-workflow init --target "$HOME\.agents"
 npx github:s1oopX/agent-memory-workflow verify --root "$HOME\.agents"
 ```
 
-`npx` 包装器只负责调用仓库内的 PowerShell 脚本，不会把 Markdown 文件隐藏到私有数据库中。
+`npx` 包装器会调用仓库内的 PowerShell 初始化和验证脚本，也会直接提供只读诊断、路径和导入提示命令。它不会把 Markdown 源文件隐藏到私有数据库中。
 
 ## 初始化后需要编辑的文件
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.13 - 2026-06-17
+
+- Clarified the `npx` wrapper documentation now that the CLI includes direct
+  read-only diagnostics, path, and import-prompt commands in addition to
+  PowerShell-backed initialization and verification.
+
 ## 0.1.12 - 2026-06-17
 
 - Updated GitHub Actions workflow dependencies to `actions/checkout@v6` and

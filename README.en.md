@@ -170,8 +170,10 @@ npx github:s1oopX/agent-memory-workflow init --target "$HOME\.agents"
 npx github:s1oopX/agent-memory-workflow verify --root "$HOME\.agents"
 ```
 
-The `npx` wrapper delegates to the PowerShell scripts in the repository. It does
-not hide the Markdown source files inside a private database.
+The `npx` wrapper delegates initialization and verification to the PowerShell
+scripts in the repository, and directly provides read-only diagnostics, path,
+and import-prompt commands. It does not hide the Markdown source files inside a
+private database.
 
 ## Files to Edit After Initialization
 
