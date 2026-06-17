@@ -37,6 +37,33 @@ function readOption(args, name, fallback) {
   return value;
 }
 
+function validateOptions(args, { valueOptions = [], flagOptions = [] }) {
+  const optionsWithValues = new Set(valueOptions);
+  const flags = new Set(flagOptions);
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (!arg.startsWith("--")) {
+      throw new Error(`Unexpected argument: ${arg}`);
+    }
+
+    if (optionsWithValues.has(arg)) {
+      const value = args[index + 1];
+      if (!value || value.startsWith("--")) {
+        throw new Error(`Missing value for ${arg}`);
+      }
+      index += 1;
+      continue;
+    }
+
+    if (flags.has(arg)) {
+      continue;
+    }
+
+    throw new Error(`Unknown option: ${arg}`);
+  }
+}
+
 function runPwsh(script, args) {
   const result = spawnSync(
     "pwsh",
@@ -190,6 +217,10 @@ function main() {
   }
 
   if (command === "init") {
+    validateOptions(args, {
+      valueOptions: ["--target", "--backup-root"],
+      flagOptions: ["--force", "--dry-run", "--no-backup", "--overwrite-machine-facts", "--skip-verify"],
+    });
     const target = readOption(args, "--target", path.join(os.homedir(), ".agents"));
     const backupRoot = readOption(args, "--backup-root", undefined);
     const script = path.join(repoRoot, "tools", "init-agent-memory-workflow.ps1");
@@ -205,6 +236,7 @@ function main() {
   }
 
   if (command === "verify") {
+    validateOptions(args, { valueOptions: ["--root"] });
     const root = readOption(args, "--root", path.join(os.homedir(), ".agents"));
     const script = path.join(repoRoot, "tools", "verify-agent-memory-workflow.ps1");
     runPwsh(script, ["-Root", root]);
@@ -212,18 +244,21 @@ function main() {
   }
 
   if (command === "status") {
+    validateOptions(args, { valueOptions: ["--root"] });
     const root = readOption(args, "--root", path.join(os.homedir(), ".agents"));
     printStatus(root);
     return;
   }
 
   if (command === "show-paths") {
+    validateOptions(args, { valueOptions: ["--root"] });
     const root = readOption(args, "--root", path.join(os.homedir(), ".agents"));
     printPaths(root);
     return;
   }
 
   if (command === "doctor") {
+    validateOptions(args, { valueOptions: ["--root"] });
     const root = readOption(args, "--root", path.join(os.homedir(), ".agents"));
     runDoctor(root);
     return;

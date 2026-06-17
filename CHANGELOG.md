@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.4 - 2026-06-17
+
+- Changed the CLI wrapper to reject unknown options and unexpected positional
+  arguments instead of silently falling back to defaults.
+- Added smoke tests for CLI argument validation failures.
+
 ## 0.1.3 - 2026-06-17
 
 - Added CLI diagnostics: `status`, `show-paths`, `doctor`, and `--version`.

@@ -142,6 +142,20 @@ try {
         Assert-TextContains -Text $doctorOutput -Needle "Agent memory workflow check: PASS" -Context "doctor output"
     }
 
+    Invoke-Step "node wrapper rejects unknown options" {
+        $unknownOutput = (& node $cliScript status --rooot $target 2>&1) -join "`n"
+        if ($LASTEXITCODE -ne 2) {
+            throw "Expected unknown option to exit 2, got $LASTEXITCODE. Output: $unknownOutput"
+        }
+        Assert-TextContains -Text $unknownOutput -Needle "Unknown option: --rooot" -Context "unknown option output"
+
+        $unexpectedOutput = (& node $cliScript status $target 2>&1) -join "`n"
+        if ($LASTEXITCODE -ne 2) {
+            throw "Expected unexpected argument to exit 2, got $LASTEXITCODE. Output: $unexpectedOutput"
+        }
+        Assert-TextContains -Text $unexpectedOutput -Needle "Unexpected argument:" -Context "unexpected argument output"
+    }
+
     Write-Host "Agent memory workflow smoke tests: PASS"
 }
 finally {
