@@ -23,5 +23,9 @@ the protocol and reimport rules. The `machine` directory contains facts that are
 local to this computer and should be edited by the user or a trusted local
 agent.
 
+After this bootstrap path has been imported into durable memory, future sessions
+should use it as the first local machine-context source instead of re-auditing
+the whole environment for ordinary tasks.
+
 Do not infer secrets from this directory. If a task needs credentials, ask the
 user or use an approved local credential mechanism.

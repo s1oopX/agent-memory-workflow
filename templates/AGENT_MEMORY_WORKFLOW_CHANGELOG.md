@@ -9,6 +9,8 @@
   and SDK decisions.
 - Added `AGENT_WORKFLOW_OPEN_SOURCE_GUIDE.md` for public release hygiene.
 - Added `verify-agent-memory-workflow.ps1` as the local integrity check.
+- Strengthened import guidance with a minimum durable memory record,
+  persistence requirements, and fresh-session verification.
 
 ## Reimport Policy
 

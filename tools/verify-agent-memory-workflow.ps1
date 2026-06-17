@@ -122,6 +122,9 @@ $referenceChecks = @{
     )
     "AGENT_MEMORY_IMPORT_PROMPT.md" = @(
         "AGENT_BOOTSTRAP.md",
+        "Minimum Durable Memory Record",
+        "Persistence Requirements",
+        "Fresh Session Verification",
         "MACHINE_ENVIRONMENT_MEMORY.md",
         "AGENT_EXECUTION_PLAYBOOK.md",
         "AGENT_ENVIRONMENT_QUICK_REFERENCE.md",
@@ -196,6 +199,7 @@ foreach ($entry in $referenceChecks.GetEnumerator()) {
 $receiptText = Read-Text "AGENT_MEMORY_IMPORT_RECEIPT_TEMPLATE.md"
 $receiptFields = @(
     "persistent_storage:",
+    "durable_memory_record:",
     "chat_local_only",
     "manual_user_action_required",
     "fresh_chat_test:",

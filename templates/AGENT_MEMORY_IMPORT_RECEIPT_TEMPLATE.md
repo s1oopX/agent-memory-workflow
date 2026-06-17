@@ -12,6 +12,7 @@ source_root: "{{AGENTS_ROOT}}"
 workflow_version: "workflow-v3"
 persistent_storage: <durable_memory|project_rules|manual_user_action_required|chat_local_only>
 canonical_shared_source: "{{AGENTS_ROOT}}\machine"
+durable_memory_record: <bootstrap_pointer_written|project_rule_pointer_written|not_written>
 local_filesystem_access: <yes|no>
 files_read:
   - AGENT_BOOTSTRAP.md
@@ -32,3 +33,6 @@ notes: <short notes or none>
 If the agent can only remember the import inside the current chat, use
 `chat_local_only`. If the user must paste or approve the memory in another
 settings layer, use `manual_user_action_required`.
+
+Use `durable_memory_record: not_written` unless a bootstrap pointer or equivalent
+record was actually written to durable storage.
