@@ -28,7 +28,7 @@ npx -y github:s1oopX/agent-memory-workflow verify --root "$HOME\.agents"
 For strict reproducibility, use a fixed GitHub release tag:
 
 ```powershell
-npx -y github:s1oopX/agent-memory-workflow#v0.1.17 --version
+npx -y github:s1oopX/agent-memory-workflow#v0.1.18 --version
 ```
 
 ## Table of Contents
@@ -221,8 +221,8 @@ npm run verify
 Best for tutorials, automation scripts, and auditable environments:
 
 ```powershell
-npx -y github:s1oopX/agent-memory-workflow#v0.1.17 preflight --target "$HOME\.agents"
-npx -y github:s1oopX/agent-memory-workflow#v0.1.17 init --target "$HOME\.agents"
+npx -y github:s1oopX/agent-memory-workflow#v0.1.18 preflight --target "$HOME\.agents"
+npx -y github:s1oopX/agent-memory-workflow#v0.1.18 init --target "$HOME\.agents"
 ```
 
 Pinning a tag prevents default-branch changes from changing script behavior. Production-like usage should pin a tag.
@@ -413,7 +413,7 @@ All `npx` commands can use `-y` to avoid interactive confirmation.
 
 | Command | Writes Files | Purpose |
 | --- | --- | --- |
-| `preflight` | no | checks `pwsh`, packaged source files, and target directory state before initialization |
+| `preflight` | no | checks `pwsh`, all workflow-managed source files, and target directory state before initialization |
 | `init` | yes | generates a new `.agents` directory |
 | `init --dry-run` | no | previews files that would be created, overwritten, or blocked |
 | `upgrade` | yes | safely refreshes workflow-managed files in an existing directory |
@@ -436,7 +436,7 @@ npx -y github:s1oopX/agent-memory-workflow preflight --target "$HOME\.agents" --
 - CLI version
 - Node version
 - whether PowerShell 7 is available
-- whether packaged source files are present
+- whether all workflow-managed source files are present
 - whether the target directory exists
 - whether the target mode is fresh install, existing workflow, or existing non-workflow directory
 - whether a non-workflow target already contains workflow-managed files that would block normal initialization
@@ -778,7 +778,7 @@ Use it when templates, import protocol, verifier, or CLI behavior has a new vers
 
 ### What is the difference between `preflight` and `verify`?
 
-`preflight` runs before initialization and checks runtime, packaged source, and target directory state. `verify` runs after a directory exists and checks installed workflow structure, references, manifest, and common risks.
+`preflight` runs before initialization and checks runtime, workflow-managed source completeness, and target directory state. `verify` runs after a directory exists and checks installed workflow structure, references, manifest, and common risks.
 
 ### Should a new agent re-audit the whole environment every time?
 

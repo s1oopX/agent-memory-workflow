@@ -338,6 +338,14 @@ function sourcePaths() {
   };
 }
 
+function managedSourcePath(relativePath) {
+  if (relativePath.startsWith(`tools${path.sep}`)) {
+    return path.join(repoRoot, relativePath);
+  }
+
+  return path.join(repoRoot, "templates", relativePath);
+}
+
 function buildPreflight(target) {
   const resolvedTarget = path.resolve(target);
   const paths = workflowPaths(resolvedTarget);
@@ -360,6 +368,15 @@ function buildPreflight(target) {
   if (!exists(sources.bootstrapTemplate)) failures.push(`Missing bootstrap template: ${sources.bootstrapTemplate}`);
   if (!exists(sources.initializer)) failures.push(`Missing source initializer: ${sources.initializer}`);
   if (!exists(sources.verifier)) failures.push(`Missing source verifier: ${sources.verifier}`);
+  const managedSourceFiles = managedRelativePaths.map((relativePath) => ({
+    relative_path: relativePath,
+    path: managedSourcePath(relativePath),
+    status: formatPresent(managedSourcePath(relativePath)),
+  }));
+  const missingManagedSourceFiles = managedSourceFiles.filter((file) => file.status === "missing");
+  for (const file of missingManagedSourceFiles) {
+    failures.push(`Missing managed source file: ${file.path}`);
+  }
 
   const manifest = readManifest(paths.manifest);
   const targetExists = exists(resolvedTarget);
@@ -390,6 +407,11 @@ function buildPreflight(target) {
       bootstrap_template: fileStatus(sources.bootstrapTemplate),
       initializer: fileStatus(sources.initializer),
       verifier: fileStatus(sources.verifier),
+      managed_files: {
+        present: managedSourceFiles.length - missingManagedSourceFiles.length,
+        total: managedSourceFiles.length,
+        missing: missingManagedSourceFiles,
+      },
     },
     target: {
       path: resolvedTarget,
@@ -431,6 +453,7 @@ function runPreflight(target, { json = false } = {}) {
   console.log(`Bootstrap template: ${result.sources.bootstrap_template.status}`);
   console.log(`Source initializer: ${result.sources.initializer.status}`);
   console.log(`Source verifier: ${result.sources.verifier.status}`);
+  console.log(`Managed source files: ${result.sources.managed_files.present}/${result.sources.managed_files.total} present`);
   console.log(`Target: ${result.target.path}`);
   console.log(`Target exists: ${result.target.exists ? "yes" : "no"}`);
   console.log(`Target manifest: ${result.target.manifest.status}`);

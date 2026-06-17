@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.18 - 2026-06-17
+
+- Strengthened `agent-memory-workflow preflight` so it now validates every
+  workflow-managed source file, not only the top-level template and script
+  entrypoints.
+- Added smoke coverage proving preflight fails when a managed source file is
+  missing from the packaged source tree.
+
 ## 0.1.17 - 2026-06-17
 
 - Expanded `README.en.md` into a full formal English project homepage aligned

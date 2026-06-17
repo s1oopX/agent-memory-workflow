@@ -64,6 +64,7 @@ $target = Join-Path $base "install"
 $dryRunTarget = Join-Path $base "dry-run"
 $dryRunConflictTarget = Join-Path $base "dry-run-conflict"
 $conflictTarget = Join-Path $base "conflict"
+$sourceCopy = Join-Path $base "source-copy"
 $packageJson = Get-Content -LiteralPath (Join-Path $sourceRootPath "package.json") -Raw | ConvertFrom-Json
 
 try {
@@ -146,6 +147,37 @@ try {
         }
         if ($preflightJson.target.managed_files.conflicts[0].relative_path -ne "AGENT_BOOTSTRAP.md") {
             throw "Unexpected conflicting managed file JSON: $preflightJsonText"
+        }
+    }
+
+    Invoke-Step "node wrapper preflight catches missing managed source files" {
+        Copy-Item -LiteralPath $sourceRootPath -Destination $sourceCopy -Recurse -Force
+        $missingSourceFile = Join-Path $sourceCopy "templates\AGENT_MEMORY_WORKFLOW.md"
+        Remove-Item -LiteralPath $missingSourceFile -Force
+
+        $copiedCliScript = Join-Path $sourceCopy "bin\agent-memory-workflow.js"
+        $preflightOutput = (& node $copiedCliScript preflight --target $dryRunTarget 2>&1) -join "`n"
+        if ($LASTEXITCODE -ne 1) {
+            throw "Expected missing-source preflight to exit 1, got $LASTEXITCODE. Output: $preflightOutput"
+        }
+        Assert-TextContains -Text $preflightOutput -Needle "Managed source files: 19/20 present" -Context "missing-source preflight output"
+        Assert-TextContains -Text $preflightOutput -Needle "Missing managed source file:" -Context "missing-source preflight output"
+        Assert-TextContains -Text $preflightOutput -Needle "AGENT_MEMORY_WORKFLOW.md" -Context "missing-source preflight output"
+        Assert-TextContains -Text $preflightOutput -Needle "Result: FAIL" -Context "missing-source preflight output"
+
+        $preflightJsonText = (& node $copiedCliScript preflight --target $dryRunTarget --json 2>&1) -join "`n"
+        if ($LASTEXITCODE -ne 1) {
+            throw "Expected missing-source preflight JSON to exit 1, got $LASTEXITCODE. Output: $preflightJsonText"
+        }
+        $preflightJson = $preflightJsonText | ConvertFrom-Json
+        if ($preflightJson.ok) {
+            throw "Expected missing-source preflight JSON to fail: $preflightJsonText"
+        }
+        if ($preflightJson.sources.managed_files.present -ne 19 -or $preflightJson.sources.managed_files.total -ne 20) {
+            throw "Unexpected managed source counts: $preflightJsonText"
+        }
+        if ($preflightJson.sources.managed_files.missing[0].relative_path -ne "AGENT_MEMORY_WORKFLOW.md") {
+            throw "Unexpected missing managed source JSON: $preflightJsonText"
         }
     }
 
