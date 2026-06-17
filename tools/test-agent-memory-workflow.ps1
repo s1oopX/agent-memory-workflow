@@ -203,6 +203,19 @@ try {
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         Assert-TextContains -Text $doctorOutput -Needle "Running verifier..." -Context "doctor output"
         Assert-TextContains -Text $doctorOutput -Needle "Agent memory workflow check: PASS" -Context "doctor output"
+
+        $doctorJsonText = (& node $cliScript doctor --root $target --json) -join "`n"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        if ($doctorJsonText.Contains("Running verifier...")) {
+            throw "Expected doctor JSON output to exclude human text. Actual output: $doctorJsonText"
+        }
+        $doctorJson = $doctorJsonText | ConvertFrom-Json
+        if (-not $doctorJson.ok -or -not $doctorJson.checks.root_exists -or -not $doctorJson.checks.verifier_exists) {
+            throw "Unexpected doctor JSON checks: $doctorJsonText"
+        }
+        if (-not $doctorJson.verifier.ok -or $doctorJson.verifier.workflow_version -ne "workflow-v3") {
+            throw "Unexpected doctor verifier JSON: $doctorJsonText"
+        }
     }
 
     Invoke-Step "node wrapper rejects unknown options" {

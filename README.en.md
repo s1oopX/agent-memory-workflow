@@ -385,6 +385,7 @@ Run diagnostics and delegate to the verifier installed in the target directory:
 
 ```powershell
 npx github:s1oopX/agent-memory-workflow doctor --root "$HOME\.agents"
+npx github:s1oopX/agent-memory-workflow doctor --root "$HOME\.agents" --json
 ```
 
 Print the CLI version:

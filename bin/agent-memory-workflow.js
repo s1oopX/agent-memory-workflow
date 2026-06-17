@@ -18,7 +18,7 @@ Usage:
   agent-memory-workflow verify [--root <path>] [--json]
   agent-memory-workflow status [--root <path>] [--json]
   agent-memory-workflow show-paths [--root <path>] [--json]
-  agent-memory-workflow doctor [--root <path>]
+  agent-memory-workflow doctor [--root <path>] [--json]
 
 Examples:
   agent-memory-workflow init --target "$HOME/.agents"
@@ -28,6 +28,7 @@ Examples:
   agent-memory-workflow verify --root "$HOME/.agents"
   agent-memory-workflow status --root "$HOME/.agents"
   agent-memory-workflow doctor --root "$HOME/.agents"
+  agent-memory-workflow doctor --root "$HOME/.agents" --json
 `);
 }
 
@@ -340,29 +341,118 @@ function runPreflight(target, { json = false } = {}) {
   console.log("Result: PASS");
 }
 
-function runDoctor(root) {
+function runDoctor(root, { json = false } = {}) {
   const resolvedRoot = path.resolve(root);
   const paths = workflowPaths(resolvedRoot);
+  const failures = [];
+  let powershell = { status: "available", version: null, error: null };
+
+  const pwshVersion = spawnSync("pwsh", ["--version"], { encoding: "utf8" });
+  if (pwshVersion.error && pwshVersion.error.code === "ENOENT") {
+    const message = "PowerShell 7 executable `pwsh` was not found on PATH.";
+    powershell = { status: "missing", version: null, error: message };
+    failures.push(message);
+  } else if (pwshVersion.error) {
+    powershell = { status: "error", version: null, error: pwshVersion.error.message };
+    failures.push(pwshVersion.error.message);
+  } else {
+    powershell = { status: "available", version: pwshVersion.stdout.trim() || null, error: null };
+  }
+
+  const checks = {
+    root_exists: exists(resolvedRoot),
+    verifier_exists: exists(paths.verifier),
+  };
+
+  if (!checks.root_exists) failures.push("Root does not exist.");
+  if (!checks.verifier_exists) failures.push(`Verifier is missing: ${paths.verifier}`);
+
+  if (json) {
+    let verifier = null;
+    let verifierExitCode = null;
+    let verifierParseError = null;
+    let verifierStdout = null;
+    let verifierStderr = null;
+
+    if (failures.length === 0) {
+      const result = spawnSync(
+        "pwsh",
+        [
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          paths.verifier,
+          "-Root",
+          resolvedRoot,
+          "-Json",
+        ],
+        { encoding: "utf8" }
+      );
+
+      verifierExitCode = result.status ?? null;
+      verifierStderr = result.stderr?.trim() || null;
+
+      if (result.error) {
+        failures.push(result.error.message);
+      } else {
+        const stdout = result.stdout?.trim() || "";
+        if (stdout) {
+          try {
+            verifier = JSON.parse(stdout);
+          } catch (error) {
+            verifierParseError = error.message;
+            verifierStdout = stdout;
+            failures.push(`Verifier JSON parse failed: ${error.message}`);
+          }
+        } else {
+          verifierParseError = "Verifier produced no stdout.";
+          failures.push(verifierParseError);
+        }
+
+        if (result.status !== 0) failures.push("Verifier failed.");
+        if (verifier && verifier.ok !== true) failures.push("Verifier reported failures.");
+      }
+    }
+
+    const report = {
+      command: "doctor",
+      ok: failures.length === 0,
+      cli_version: packageJson.version,
+      root: resolvedRoot,
+      powershell,
+      checks,
+      verifier,
+      verifier_exit_code: verifierExitCode,
+      verifier_parse_error: verifierParseError,
+      verifier_stdout: verifierStdout,
+      verifier_stderr: verifierStderr,
+      failures,
+    };
+
+    printJson(report);
+    if (!report.ok) process.exit(powershell.status === "missing" ? 127 : 1);
+    return;
+  }
 
   console.log(`Agent Memory Workflow ${packageJson.version}`);
   console.log(`Root: ${resolvedRoot}`);
 
-  const pwshVersion = spawnSync("pwsh", ["--version"], { encoding: "utf8" });
-  if (pwshVersion.error && pwshVersion.error.code === "ENOENT") {
+  if (powershell.status === "missing") {
     console.error("FAIL: PowerShell 7 executable `pwsh` was not found on PATH.");
     process.exit(127);
   }
-  if (pwshVersion.error) {
-    console.error(`FAIL: ${pwshVersion.error.message}`);
+  if (powershell.status === "error") {
+    console.error(`FAIL: ${powershell.error}`);
     process.exit(1);
   }
-  console.log(`PowerShell: ${pwshVersion.stdout.trim() || "available"}`);
+  console.log(`PowerShell: ${powershell.version ?? "available"}`);
 
-  if (!exists(resolvedRoot)) {
+  if (!checks.root_exists) {
     console.error("FAIL: root does not exist.");
     process.exit(1);
   }
-  if (!exists(paths.verifier)) {
+  if (!checks.verifier_exists) {
     console.error(`FAIL: verifier is missing: ${paths.verifier}`);
     process.exit(1);
   }
@@ -453,9 +543,9 @@ function main() {
   }
 
   if (command === "doctor") {
-    validateOptions(args, { valueOptions: ["--root"] });
+    validateOptions(args, { valueOptions: ["--root"], flagOptions: ["--json"] });
     const root = readOption(args, "--root", path.join(os.homedir(), ".agents"));
-    runDoctor(root);
+    runDoctor(root, { json: args.includes("--json") });
     return;
   }
 

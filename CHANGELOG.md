@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.10 - 2026-06-17
+
+- Added `agent-memory-workflow doctor --json` for machine-readable diagnostics.
+- The doctor JSON report includes PowerShell availability, root/verifier checks,
+  verifier JSON results, and top-level failures.
+- Added smoke coverage that parses `doctor --json`.
+
 ## 0.1.9 - 2026-06-17
 
 - Added JSON output to `verify-agent-memory-workflow.ps1` with `-Json`.

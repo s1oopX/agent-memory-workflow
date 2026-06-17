@@ -365,6 +365,7 @@ npx github:s1oopX/agent-memory-workflow show-paths --root "$HOME\.agents" --json
 
 ```powershell
 npx github:s1oopX/agent-memory-workflow doctor --root "$HOME\.agents"
+npx github:s1oopX/agent-memory-workflow doctor --root "$HOME\.agents" --json
 ```
 
 查看 CLI 版本：
