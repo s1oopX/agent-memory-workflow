@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.1 - 2026-06-17
 
 - Added GitHub Actions CI for pull requests and pushes to `main`.
 - Added local smoke tests covering fresh installs, dry runs, forced upgrades,
