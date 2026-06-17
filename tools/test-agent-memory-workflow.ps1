@@ -84,6 +84,14 @@ try {
         }
     }
 
+    Invoke-Step "node wrapper preflights fresh target" {
+        $preflightOutput = (& node $cliScript preflight --target $dryRunTarget) -join "`n"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        Assert-TextContains -Text $preflightOutput -Needle "Target exists: no" -Context "fresh preflight output"
+        Assert-TextContains -Text $preflightOutput -Needle "Target mode: fresh install" -Context "fresh preflight output"
+        Assert-TextContains -Text $preflightOutput -Needle "Result: PASS" -Context "fresh preflight output"
+    }
+
     Invoke-Step "force preserves machine facts by default" {
         $machineFile = Join-Path $target "machine\MACHINE_ENVIRONMENT_MEMORY.md"
         $sentinel = "LOCAL_SENTINEL_MACHINE_FACT"
@@ -121,6 +129,14 @@ try {
 
         Assert-TextContains -Text $upgradeOutput -Needle "Preserving existing machine fact:" -Context "upgrade output"
         Assert-FileContains -Path $machineFile -Needle $sentinel
+    }
+
+    Invoke-Step "node wrapper preflights existing target" {
+        $preflightOutput = (& node $cliScript preflight --target $target) -join "`n"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        Assert-TextContains -Text $preflightOutput -Needle "Target exists: yes" -Context "existing preflight output"
+        Assert-TextContains -Text $preflightOutput -Needle "Target mode: existing workflow" -Context "existing preflight output"
+        Assert-TextContains -Text $preflightOutput -Needle "Result: PASS" -Context "existing preflight output"
     }
 
     Invoke-Step "node wrapper prints package version" {

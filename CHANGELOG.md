@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.7 - 2026-06-17
+
+- Added a read-only CLI `preflight` command that checks runtime prerequisites,
+  packaged source files, and target directory state before initialization.
+- Documented the preflight command in the Chinese and English READMEs.
+- Added smoke coverage for fresh and existing target preflight results.
+
 ## 0.1.6 - 2026-06-17
 
 - Added a Node wrapper `upgrade` command for safe template upgrades of existing

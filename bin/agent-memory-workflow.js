@@ -14,6 +14,7 @@ function usage() {
 Usage:
   agent-memory-workflow init [--target <path>] [--force] [--dry-run] [--backup-root <path>] [--no-backup] [--overwrite-machine-facts] [--skip-verify]
   agent-memory-workflow upgrade [--target <path>] [--dry-run] [--backup-root <path>] [--no-backup] [--overwrite-machine-facts] [--skip-verify]
+  agent-memory-workflow preflight [--target <path>]
   agent-memory-workflow verify [--root <path>]
   agent-memory-workflow status [--root <path>]
   agent-memory-workflow show-paths [--root <path>]
@@ -22,6 +23,7 @@ Usage:
 Examples:
   agent-memory-workflow init --target "$HOME/.agents"
   agent-memory-workflow init --target "$HOME/.agents" --dry-run
+  agent-memory-workflow preflight --target "$HOME/.agents"
   agent-memory-workflow upgrade --target "$HOME/.agents"
   agent-memory-workflow verify --root "$HOME/.agents"
   agent-memory-workflow status --root "$HOME/.agents"
@@ -165,6 +167,75 @@ function printPaths(root) {
   console.log(`initializer=${paths.initializer}`);
 }
 
+function sourcePaths() {
+  return {
+    templates: path.join(repoRoot, "templates"),
+    bootstrapTemplate: path.join(repoRoot, "templates", "AGENT_BOOTSTRAP.md"),
+    initializer: path.join(repoRoot, "tools", "init-agent-memory-workflow.ps1"),
+    verifier: path.join(repoRoot, "tools", "verify-agent-memory-workflow.ps1"),
+  };
+}
+
+function runPreflight(target) {
+  const resolvedTarget = path.resolve(target);
+  const paths = workflowPaths(resolvedTarget);
+  const sources = sourcePaths();
+  const failures = [];
+
+  console.log("Agent memory workflow preflight");
+  console.log(`CLI version: ${packageJson.version}`);
+  console.log(`Node: ${process.version}`);
+
+  const pwshVersion = spawnSync("pwsh", ["--version"], { encoding: "utf8" });
+  if (pwshVersion.error && pwshVersion.error.code === "ENOENT") {
+    failures.push("PowerShell 7 executable `pwsh` was not found on PATH.");
+    console.log("PowerShell: missing");
+  } else if (pwshVersion.error) {
+    failures.push(pwshVersion.error.message);
+    console.log("PowerShell: error");
+  } else {
+    console.log(`PowerShell: ${pwshVersion.stdout.trim() || "available"}`);
+  }
+
+  console.log(`Source templates: ${formatPresent(sources.templates)}`);
+  console.log(`Bootstrap template: ${formatPresent(sources.bootstrapTemplate)}`);
+  console.log(`Source initializer: ${formatPresent(sources.initializer)}`);
+  console.log(`Source verifier: ${formatPresent(sources.verifier)}`);
+
+  if (!exists(sources.templates)) failures.push(`Missing source templates: ${sources.templates}`);
+  if (!exists(sources.bootstrapTemplate)) failures.push(`Missing bootstrap template: ${sources.bootstrapTemplate}`);
+  if (!exists(sources.initializer)) failures.push(`Missing source initializer: ${sources.initializer}`);
+  if (!exists(sources.verifier)) failures.push(`Missing source verifier: ${sources.verifier}`);
+
+  const manifest = readManifest(paths.manifest);
+  console.log(`Target: ${resolvedTarget}`);
+  console.log(`Target exists: ${exists(resolvedTarget) ? "yes" : "no"}`);
+  console.log(`Target manifest: ${formatPresent(paths.manifest)}`);
+  if (manifest?.parseError) {
+    console.log(`Target manifest parse: failed (${manifest.parseError})`);
+  } else if (manifest) {
+    console.log(`Target workflow version: ${manifest.version ?? "unknown"}`);
+  }
+
+  if (!exists(resolvedTarget)) {
+    console.log("Target mode: fresh install");
+  } else if (manifest) {
+    console.log("Target mode: existing workflow");
+  } else {
+    console.log("Target mode: existing non-workflow directory");
+  }
+
+  if (failures.length > 0) {
+    console.log("Result: FAIL");
+    for (const failure of failures) {
+      console.log(`- ${failure}`);
+    }
+    process.exit(1);
+  }
+
+  console.log("Result: PASS");
+}
+
 function runDoctor(root) {
   const resolvedRoot = path.resolve(root);
   const paths = workflowPaths(resolvedRoot);
@@ -238,6 +309,13 @@ function main() {
 
   if (command === "init") {
     runInit(args);
+    return;
+  }
+
+  if (command === "preflight") {
+    validateOptions(args, { valueOptions: ["--target"] });
+    const target = readOption(args, "--target", path.join(os.homedir(), ".agents"));
+    runPreflight(target);
     return;
   }
 
