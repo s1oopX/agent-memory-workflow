@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.6 - 2026-06-17
+
+- Added a Node wrapper `upgrade` command for safe template upgrades of existing
+  `.agents` directories.
+- Documented the upgrade command in the Chinese and English READMEs.
+- Added smoke coverage proving CLI upgrade preserves existing machine facts.
+
 ## 0.1.5 - 2026-06-17
 
 - Strengthened the import prompt with a minimum durable memory record,

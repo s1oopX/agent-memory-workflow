@@ -13,6 +13,7 @@ function usage() {
 
 Usage:
   agent-memory-workflow init [--target <path>] [--force] [--dry-run] [--backup-root <path>] [--no-backup] [--overwrite-machine-facts] [--skip-verify]
+  agent-memory-workflow upgrade [--target <path>] [--dry-run] [--backup-root <path>] [--no-backup] [--overwrite-machine-facts] [--skip-verify]
   agent-memory-workflow verify [--root <path>]
   agent-memory-workflow status [--root <path>]
   agent-memory-workflow show-paths [--root <path>]
@@ -21,6 +22,7 @@ Usage:
 Examples:
   agent-memory-workflow init --target "$HOME/.agents"
   agent-memory-workflow init --target "$HOME/.agents" --dry-run
+  agent-memory-workflow upgrade --target "$HOME/.agents"
   agent-memory-workflow verify --root "$HOME/.agents"
   agent-memory-workflow status --root "$HOME/.agents"
   agent-memory-workflow doctor --root "$HOME/.agents"
@@ -203,6 +205,24 @@ function runDoctor(root) {
   process.exit(result.status ?? 1);
 }
 
+function runInit(args, { force = false } = {}) {
+  validateOptions(args, {
+    valueOptions: ["--target", "--backup-root"],
+    flagOptions: ["--force", "--dry-run", "--no-backup", "--overwrite-machine-facts", "--skip-verify"],
+  });
+  const target = readOption(args, "--target", path.join(os.homedir(), ".agents"));
+  const backupRoot = readOption(args, "--backup-root", undefined);
+  const script = path.join(repoRoot, "tools", "init-agent-memory-workflow.ps1");
+  const psArgs = ["-TargetRoot", target, "-SourceRoot", repoRoot];
+  if (backupRoot) psArgs.push("-BackupRoot", backupRoot);
+  if (force || args.includes("--force")) psArgs.push("-Force");
+  if (args.includes("--dry-run")) psArgs.push("-DryRun");
+  if (args.includes("--no-backup")) psArgs.push("-NoBackup");
+  if (args.includes("--overwrite-machine-facts")) psArgs.push("-OverwriteMachineFacts");
+  if (args.includes("--skip-verify")) psArgs.push("-SkipVerify");
+  runPwsh(script, psArgs);
+}
+
 function main() {
   const [, , command, ...args] = process.argv;
 
@@ -217,21 +237,12 @@ function main() {
   }
 
   if (command === "init") {
-    validateOptions(args, {
-      valueOptions: ["--target", "--backup-root"],
-      flagOptions: ["--force", "--dry-run", "--no-backup", "--overwrite-machine-facts", "--skip-verify"],
-    });
-    const target = readOption(args, "--target", path.join(os.homedir(), ".agents"));
-    const backupRoot = readOption(args, "--backup-root", undefined);
-    const script = path.join(repoRoot, "tools", "init-agent-memory-workflow.ps1");
-    const psArgs = ["-TargetRoot", target, "-SourceRoot", repoRoot];
-    if (backupRoot) psArgs.push("-BackupRoot", backupRoot);
-    if (args.includes("--force")) psArgs.push("-Force");
-    if (args.includes("--dry-run")) psArgs.push("-DryRun");
-    if (args.includes("--no-backup")) psArgs.push("-NoBackup");
-    if (args.includes("--overwrite-machine-facts")) psArgs.push("-OverwriteMachineFacts");
-    if (args.includes("--skip-verify")) psArgs.push("-SkipVerify");
-    runPwsh(script, psArgs);
+    runInit(args);
+    return;
+  }
+
+  if (command === "upgrade") {
+    runInit(args, { force: true });
     return;
   }
 

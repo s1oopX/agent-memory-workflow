@@ -111,6 +111,18 @@ try {
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     }
 
+    Invoke-Step "node wrapper upgrades installed target" {
+        $machineFile = Join-Path $target "machine\MACHINE_ENVIRONMENT_MEMORY.md"
+        $sentinel = "LOCAL_SENTINEL_CLI_UPGRADE"
+        Set-Content -LiteralPath $machineFile -Value "# Local Machine Facts`n`n$sentinel" -Encoding UTF8
+
+        $upgradeOutput = (& node $cliScript upgrade --target $target) -join "`n"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+        Assert-TextContains -Text $upgradeOutput -Needle "Preserving existing machine fact:" -Context "upgrade output"
+        Assert-FileContains -Path $machineFile -Needle $sentinel
+    }
+
     Invoke-Step "node wrapper prints package version" {
         $versionOutput = ((& node $cliScript --version) -join "`n").Trim()
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

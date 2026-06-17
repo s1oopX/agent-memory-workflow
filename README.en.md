@@ -344,6 +344,14 @@ Preview initialization through the Node wrapper:
 npx github:s1oopX/agent-memory-workflow init --target "$HOME\.agents" --dry-run
 ```
 
+Upgrade an existing directory through the Node wrapper. This is the safe upgrade
+mode: it overwrites workflow-managed files, creates backups, and preserves
+existing machine facts under `machine\` by default:
+
+```powershell
+npx github:s1oopX/agent-memory-workflow upgrade --target "$HOME\.agents"
+```
+
 Verify through the Node wrapper:
 
 ```powershell
@@ -484,7 +492,7 @@ Medium term:
 
 - provide a more complete CLI experience
 - add preflight checks before initialization
-- add template upgrade and migration helpers
+- add migration helpers for future workflow-version changes
 
 Long term:
 
