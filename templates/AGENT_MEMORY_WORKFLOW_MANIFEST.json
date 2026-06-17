@@ -1,0 +1,55 @@
+{
+  "version": "workflow-v3",
+  "generated_at_utc": "{{GENERATED_UTC}}",
+  "owner_user": "{{USER_ID}}",
+  "os_name": "{{OS_NAME}}",
+  "universal_bootstrap": "{{AGENTS_ROOT_JSON}}\\AGENT_BOOTSTRAP.md",
+  "import_prompt": "{{AGENTS_ROOT_JSON}}\\AGENT_MEMORY_IMPORT_PROMPT.md",
+  "receipt_template": "{{AGENTS_ROOT_JSON}}\\AGENT_MEMORY_IMPORT_RECEIPT_TEMPLATE.md",
+  "workflow_summary": "{{AGENTS_ROOT_JSON}}\\AGENT_MEMORY_WORKFLOW.md",
+  "import_registry": "{{AGENTS_ROOT_JSON}}\\imports\\IMPORT_REGISTRY.md",
+  "imports_directory": "{{AGENTS_ROOT_JSON}}\\imports",
+  "canonical_shared_source": "{{AGENTS_ROOT_JSON}}\\machine",
+  "initializer": "{{AGENTS_ROOT_JSON}}\\tools\\init-agent-memory-workflow.ps1",
+  "verifier": "{{AGENTS_ROOT_JSON}}\\tools\\verify-agent-memory-workflow.ps1",
+  "changelog": "{{AGENTS_ROOT_JSON}}\\AGENT_MEMORY_WORKFLOW_CHANGELOG.md",
+  "platform_adapters": "{{AGENTS_ROOT_JSON}}\\AGENT_PLATFORM_ADAPTERS.md",
+  "replication_strategy": "{{AGENTS_ROOT_JSON}}\\AGENT_WORKFLOW_REPLICATION_STRATEGY.md",
+  "open_source_guide": "{{AGENTS_ROOT_JSON}}\\AGENT_WORKFLOW_OPEN_SOURCE_GUIDE.md",
+  "source_files": [
+    "{{AGENTS_ROOT_JSON}}\\AGENT_BOOTSTRAP.md",
+    "{{AGENTS_ROOT_JSON}}\\AGENT_MEMORY_IMPORT_PROMPT.md",
+    "{{AGENTS_ROOT_JSON}}\\AGENT_MEMORY_IMPORT_RECEIPT_TEMPLATE.md",
+    "{{AGENTS_ROOT_JSON}}\\AGENT_MEMORY_WORKFLOW.md",
+    "{{AGENTS_ROOT_JSON}}\\imports\\IMPORT_REGISTRY.md",
+    "{{AGENTS_ROOT_JSON}}\\machine\\MACHINE_ENVIRONMENT_MEMORY.md",
+    "{{AGENTS_ROOT_JSON}}\\machine\\AGENT_ENVIRONMENT_QUICK_REFERENCE.md"
+  ],
+  "stable_policies": {
+    "secrets": "Do not store credentials, tokens, private keys, or service secrets in shared memory files.",
+    "local_scope": "This workflow is for local agents with filesystem access.",
+    "verification": "Run the verifier after material edits."
+  },
+  "reimport_required_when": [
+    "workflow version changes",
+    "manifest paths or policies change",
+    "machine facts materially change",
+    "platform adapters change",
+    "verifier policy changes"
+  ],
+  "adapter_categories": [
+    "local_codex_like_agents",
+    "local_ide_agents",
+    "local_cli_agents",
+    "local_desktop_agents"
+  ],
+  "replication_recommendation": {
+    "current_best_path": "file protocol plus verifier",
+    "next_productization_step": "npx/local CLI wrapper",
+    "defer_until_needed": "SDK"
+  },
+  "open_source_recommendation": {
+    "first_release": "templates plus PowerShell init/verifier",
+    "publish_personal_machine_facts": false
+  }
+}

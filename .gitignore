@@ -1,0 +1,9 @@
+node_modules/
+npm-debug.log*
+*.tmp
+*.log
+.DS_Store
+Thumbs.db
+
+# Local generated installs used during tests.
+.agent-memory-test/

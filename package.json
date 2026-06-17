@@ -1,0 +1,35 @@
+{
+  "name": "agent-memory-workflow",
+  "version": "0.1.0",
+  "description": "Local-first file protocol for shared agent memory.",
+  "license": "MIT",
+  "type": "commonjs",
+  "bin": {
+    "agent-memory-workflow": "bin/agent-memory-workflow.js"
+  },
+  "files": [
+    "bin",
+    "tools",
+    "templates",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "verify": "pwsh -NoProfile -ExecutionPolicy Bypass -File ./tools/verify-agent-memory-workflow.ps1 -Root ./templates -TemplateMode"
+  },
+  "keywords": [
+    "agent",
+    "memory",
+    "codex",
+    "local-first",
+    "workflow"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/s1oopX/agent-memory-workflow.git"
+  }
+}
