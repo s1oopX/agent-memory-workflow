@@ -188,6 +188,12 @@ $HOME\.agents\machine\HOME_DIRECTORY_MAP.md
 Read $HOME\.agents\AGENT_MEMORY_IMPORT_PROMPT.md and import it into your local durable memory or persistent instruction layer.
 ```
 
+也可以通过 CLI 生成这段指令：
+
+```powershell
+npx github:s1oopX/agent-memory-workflow import-prompt --root "$HOME\.agents"
+```
+
 Agent 完成后应基于以下模板返回回执：
 
 ```text
@@ -359,6 +365,13 @@ npx github:s1oopX/agent-memory-workflow status --root "$HOME\.agents" --json
 ```powershell
 npx github:s1oopX/agent-memory-workflow show-paths --root "$HOME\.agents"
 npx github:s1oopX/agent-memory-workflow show-paths --root "$HOME\.agents" --json
+```
+
+输出可直接交给本地 Agent 的导入指令：
+
+```powershell
+npx github:s1oopX/agent-memory-workflow import-prompt --root "$HOME\.agents"
+npx github:s1oopX/agent-memory-workflow import-prompt --root "$HOME\.agents" --json
 ```
 
 运行诊断检查，并调用目标目录内的验证器：

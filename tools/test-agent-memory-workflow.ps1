@@ -198,6 +198,30 @@ try {
         }
     }
 
+    Invoke-Step "node wrapper prints import prompt instruction" {
+        $importPromptOutput = (& node $cliScript import-prompt --root $target) -join "`n"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        Assert-TextContains -Text $importPromptOutput -Needle "Give this instruction to a local agent:" -Context "import-prompt output"
+        Assert-TextContains -Text $importPromptOutput -Needle "Import registry: present" -Context "import-prompt output"
+        Assert-TextContains -Text $importPromptOutput -Needle "AGENT_MEMORY_IMPORT_PROMPT.md" -Context "import-prompt output"
+        Assert-TextContains -Text $importPromptOutput -Needle "local durable memory or persistent instruction layer" -Context "import-prompt output"
+
+        $importPromptJsonText = (& node $cliScript import-prompt --root $target --json) -join "`n"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        $importPromptJson = $importPromptJsonText | ConvertFrom-Json
+        if (
+            -not $importPromptJson.ok -or
+            -not $importPromptJson.paths.import_prompt -or
+            -not $importPromptJson.paths.bootstrap -or
+            -not $importPromptJson.checks.import_registry_exists
+        ) {
+            throw "Unexpected import-prompt JSON: $importPromptJsonText"
+        }
+        if (-not $importPromptJson.instruction.Contains("AGENT_MEMORY_IMPORT_PROMPT.md")) {
+            throw "Import prompt instruction missing prompt path: $importPromptJsonText"
+        }
+    }
+
     Invoke-Step "node wrapper doctor runs verifier" {
         $doctorOutput = (& node $cliScript doctor --root $target) -join "`n"
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

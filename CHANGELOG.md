@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.11 - 2026-06-17
+
+- Added `agent-memory-workflow import-prompt` to print the exact instruction to
+  give to a new local agent.
+- Added `agent-memory-workflow import-prompt --json` for scripts that need the
+  import prompt, bootstrap, receipt template, and registry paths.
+- Added smoke coverage for the new import prompt command.
+
 ## 0.1.10 - 2026-06-17
 
 - Added `agent-memory-workflow doctor --json` for machine-readable diagnostics.

@@ -18,6 +18,7 @@ Usage:
   agent-memory-workflow verify [--root <path>] [--json]
   agent-memory-workflow status [--root <path>] [--json]
   agent-memory-workflow show-paths [--root <path>] [--json]
+  agent-memory-workflow import-prompt [--root <path>] [--json]
   agent-memory-workflow doctor [--root <path>] [--json]
 
 Examples:
@@ -27,6 +28,7 @@ Examples:
   agent-memory-workflow upgrade --target "$HOME/.agents"
   agent-memory-workflow verify --root "$HOME/.agents"
   agent-memory-workflow status --root "$HOME/.agents"
+  agent-memory-workflow import-prompt --root "$HOME/.agents"
   agent-memory-workflow doctor --root "$HOME/.agents"
   agent-memory-workflow doctor --root "$HOME/.agents" --json
 `);
@@ -230,6 +232,69 @@ function printPaths(root, { json = false } = {}) {
   for (const [key, value] of Object.entries(result.paths)) {
     console.log(`${key}=${value}`);
   }
+}
+
+function buildImportPrompt(root) {
+  const resolvedRoot = path.resolve(root);
+  const paths = workflowPaths(resolvedRoot);
+  const failures = [];
+  const checks = {
+    root_exists: exists(resolvedRoot),
+    import_prompt_exists: exists(paths.importPrompt),
+    bootstrap_exists: exists(paths.bootstrap),
+    receipt_template_exists: exists(paths.receiptTemplate),
+    import_registry_exists: exists(paths.importRegistry),
+  };
+
+  if (!checks.root_exists) failures.push("Root does not exist.");
+  if (!checks.import_prompt_exists) failures.push(`Import prompt is missing: ${paths.importPrompt}`);
+  if (!checks.bootstrap_exists) failures.push(`Bootstrap is missing: ${paths.bootstrap}`);
+  if (!checks.receipt_template_exists) {
+    failures.push(`Receipt template is missing: ${paths.receiptTemplate}`);
+  }
+  if (!checks.import_registry_exists) failures.push(`Import registry is missing: ${paths.importRegistry}`);
+
+  return {
+    command: "import-prompt",
+    ok: failures.length === 0,
+    root: resolvedRoot,
+    instruction: `Read ${paths.importPrompt} and import it into your local durable memory or persistent instruction layer.`,
+    paths: {
+      import_prompt: paths.importPrompt,
+      bootstrap: paths.bootstrap,
+      receipt_template: paths.receiptTemplate,
+      import_registry: paths.importRegistry,
+    },
+    checks,
+    failures,
+  };
+}
+
+function printImportPrompt(root, { json = false } = {}) {
+  const result = buildImportPrompt(root);
+  if (json) {
+    printJson(result);
+    if (!result.ok) process.exit(1);
+    return;
+  }
+
+  console.log("Agent memory workflow import prompt");
+  console.log(`Root: ${result.root}`);
+  console.log(`Import prompt: ${result.checks.import_prompt_exists ? "present" : "missing"}`);
+  console.log(`Bootstrap: ${result.checks.bootstrap_exists ? "present" : "missing"}`);
+  console.log(`Receipt template: ${result.checks.receipt_template_exists ? "present" : "missing"}`);
+  console.log(`Import registry: ${result.checks.import_registry_exists ? "present" : "missing"}`);
+
+  if (!result.ok) {
+    console.log("Result: FAIL");
+    for (const failure of result.failures) {
+      console.log(`- ${failure}`);
+    }
+    process.exit(1);
+  }
+
+  console.log("Give this instruction to a local agent:");
+  console.log(result.instruction);
 }
 
 function sourcePaths() {
@@ -539,6 +604,13 @@ function main() {
     validateOptions(args, { valueOptions: ["--root"], flagOptions: ["--json"] });
     const root = readOption(args, "--root", path.join(os.homedir(), ".agents"));
     printPaths(root, { json: args.includes("--json") });
+    return;
+  }
+
+  if (command === "import-prompt") {
+    validateOptions(args, { valueOptions: ["--root"], flagOptions: ["--json"] });
+    const root = readOption(args, "--root", path.join(os.homedir(), ".agents"));
+    printImportPrompt(root, { json: args.includes("--json") });
     return;
   }
 

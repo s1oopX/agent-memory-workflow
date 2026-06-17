@@ -1,6 +1,6 @@
 {
   "name": "agent-memory-workflow",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "Local-first file protocol for shared agent memory.",
   "license": "MIT",
   "type": "commonjs",

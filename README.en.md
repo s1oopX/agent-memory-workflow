@@ -202,6 +202,12 @@ Give a local agent this instruction:
 Read $HOME\.agents\AGENT_MEMORY_IMPORT_PROMPT.md and import it into your local durable memory or persistent instruction layer.
 ```
 
+You can also generate this instruction through the CLI:
+
+```powershell
+npx github:s1oopX/agent-memory-workflow import-prompt --root "$HOME\.agents"
+```
+
 The agent should return a receipt based on:
 
 ```text
@@ -379,6 +385,13 @@ Print key workflow paths for local-agent handoff or script debugging:
 ```powershell
 npx github:s1oopX/agent-memory-workflow show-paths --root "$HOME\.agents"
 npx github:s1oopX/agent-memory-workflow show-paths --root "$HOME\.agents" --json
+```
+
+Print the instruction to give to a new local agent:
+
+```powershell
+npx github:s1oopX/agent-memory-workflow import-prompt --root "$HOME\.agents"
+npx github:s1oopX/agent-memory-workflow import-prompt --root "$HOME\.agents" --json
 ```
 
 Run diagnostics and delegate to the verifier installed in the target directory:
