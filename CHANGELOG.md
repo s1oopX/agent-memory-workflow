@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.3 - 2026-06-17
+
+- Added CLI diagnostics: `status`, `show-paths`, `doctor`, and `--version`.
+- Extended smoke tests to cover the new Node wrapper diagnostic commands.
+- Documented diagnostic commands in the Chinese and English READMEs.
+
 ## 0.1.2 - 2026-06-17
 
 - Added issue templates, a pull request template, `CONTRIBUTING.md`, and

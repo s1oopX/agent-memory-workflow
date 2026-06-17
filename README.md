@@ -332,6 +332,30 @@ npx github:s1oopX/agent-memory-workflow init --target "$HOME\.agents" --dry-run
 npx github:s1oopX/agent-memory-workflow verify --root "$HOME\.agents"
 ```
 
+查看已安装目录的轻量状态：
+
+```powershell
+npx github:s1oopX/agent-memory-workflow status --root "$HOME\.agents"
+```
+
+输出工作流关键路径，便于复制给本地 Agent 或调试脚本：
+
+```powershell
+npx github:s1oopX/agent-memory-workflow show-paths --root "$HOME\.agents"
+```
+
+运行诊断检查，并调用目标目录内的验证器：
+
+```powershell
+npx github:s1oopX/agent-memory-workflow doctor --root "$HOME\.agents"
+```
+
+查看 CLI 版本：
+
+```powershell
+npx github:s1oopX/agent-memory-workflow --version
+```
+
 ## 验证器检查内容
 
 `verify-agent-memory-workflow.ps1` 会检查：

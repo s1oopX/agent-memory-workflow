@@ -47,9 +47,22 @@ function Assert-FileDoesNotContain {
     }
 }
 
+function Assert-TextContains {
+    param(
+        [string]$Text,
+        [string]$Needle,
+        [string]$Context
+    )
+
+    if (-not $Text.Contains($Needle)) {
+        throw "Expected $Context to contain '$Needle'. Actual output: $Text"
+    }
+}
+
 $base = Join-Path ([System.IO.Path]::GetTempPath()) ("agent-memory-workflow-test-" + [guid]::NewGuid().ToString())
 $target = Join-Path $base "install"
 $dryRunTarget = Join-Path $base "dry-run"
+$packageJson = Get-Content -LiteralPath (Join-Path $sourceRootPath "package.json") -Raw | ConvertFrom-Json
 
 try {
     New-Item -ItemType Directory -Path $base -Force | Out-Null
@@ -96,6 +109,37 @@ try {
     Invoke-Step "node wrapper verifies installed target" {
         & node $cliScript verify --root $target
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    }
+
+    Invoke-Step "node wrapper prints package version" {
+        $versionOutput = ((& node $cliScript --version) -join "`n").Trim()
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        if ($versionOutput -ne $packageJson.version) {
+            throw "Expected CLI version '$($packageJson.version)', got '$versionOutput'."
+        }
+    }
+
+    Invoke-Step "node wrapper reports installed status" {
+        $statusOutput = (& node $cliScript status --root $target) -join "`n"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        Assert-TextContains -Text $statusOutput -Needle "Workflow version: workflow-v3" -Context "status output"
+        Assert-TextContains -Text $statusOutput -Needle "Bootstrap: present" -Context "status output"
+        Assert-TextContains -Text $statusOutput -Needle "Verifier: present" -Context "status output"
+    }
+
+    Invoke-Step "node wrapper prints workflow paths" {
+        $pathsOutput = (& node $cliScript show-paths --root $target) -join "`n"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        Assert-TextContains -Text $pathsOutput -Needle "bootstrap=" -Context "show-paths output"
+        Assert-TextContains -Text $pathsOutput -Needle "manifest=" -Context "show-paths output"
+        Assert-TextContains -Text $pathsOutput -Needle "verifier=" -Context "show-paths output"
+    }
+
+    Invoke-Step "node wrapper doctor runs verifier" {
+        $doctorOutput = (& node $cliScript doctor --root $target) -join "`n"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        Assert-TextContains -Text $doctorOutput -Needle "Running verifier..." -Context "doctor output"
+        Assert-TextContains -Text $doctorOutput -Needle "Agent memory workflow check: PASS" -Context "doctor output"
     }
 
     Write-Host "Agent memory workflow smoke tests: PASS"

@@ -350,6 +350,30 @@ Verify through the Node wrapper:
 npx github:s1oopX/agent-memory-workflow verify --root "$HOME\.agents"
 ```
 
+Inspect lightweight status for an installed directory:
+
+```powershell
+npx github:s1oopX/agent-memory-workflow status --root "$HOME\.agents"
+```
+
+Print key workflow paths for local-agent handoff or script debugging:
+
+```powershell
+npx github:s1oopX/agent-memory-workflow show-paths --root "$HOME\.agents"
+```
+
+Run diagnostics and delegate to the verifier installed in the target directory:
+
+```powershell
+npx github:s1oopX/agent-memory-workflow doctor --root "$HOME\.agents"
+```
+
+Print the CLI version:
+
+```powershell
+npx github:s1oopX/agent-memory-workflow --version
+```
+
 ## What the Verifier Checks
 
 `verify-agent-memory-workflow.ps1` checks:
