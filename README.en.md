@@ -557,11 +557,32 @@ Useful automation fields include:
 
 - `cli_version`
 - `powershell.status`
+- `sources.managed_files.present`
+- `sources.managed_files.total`
+- `sources.managed_files.missing`
 - `target.mode`
 - `manifest.version`
 - `paths.bootstrap`
 - `paths.import_prompt`
 - `failures`
+
+Example `preflight --json` shape:
+
+```json
+{
+  "ok": true,
+  "sources": {
+    "managed_files": {
+      "present": 20,
+      "total": 20,
+      "missing": []
+    }
+  },
+  "target": {
+    "mode": "fresh install"
+  }
+}
+```
 
 ## Upgrade and Backup Semantics
 

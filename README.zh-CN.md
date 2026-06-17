@@ -557,11 +557,32 @@ npx -y github:s1oopX/agent-memory-workflow doctor --root "$HOME\.agents" --json
 
 - `cli_version`
 - `powershell.status`
+- `sources.managed_files.present`
+- `sources.managed_files.total`
+- `sources.managed_files.missing`
 - `target.mode`
 - `manifest.version`
 - `paths.bootstrap`
 - `paths.import_prompt`
 - `failures`
+
+`preflight --json` 的结果形状示例：
+
+```json
+{
+  "ok": true,
+  "sources": {
+    "managed_files": {
+      "present": 20,
+      "total": 20,
+      "missing": []
+    }
+  },
+  "target": {
+    "mode": "fresh install"
+  }
+}
+```
 
 ## 升级与备份语义
 

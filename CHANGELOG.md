@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.19 - 2026-06-17
+
+- Documented the `preflight --json` managed-source fields in the Chinese and
+  English READMEs.
+- Added a minimal JSON shape example for automation consumers reading
+  `sources.managed_files`.
+
 ## 0.1.18 - 2026-06-17
 
 - Strengthened `agent-memory-workflow preflight` so it now validates every
