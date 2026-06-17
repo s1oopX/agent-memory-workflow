@@ -2,49 +2,151 @@
 
 [简体中文](README.md) | [English](README.en.md)
 
-Agent Memory Workflow is a local-first file protocol for maintaining reusable
-operating memory for coding agents. It provides a stable `.agents` directory,
-generic templates, an initializer, and a verifier so local agents can share the
-same machine guidance without depending on a hosted memory service or a specific
-agent vendor.
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Workflow](https://img.shields.io/badge/workflow-v3-2f6f4e.svg)
+![Scope](https://img.shields.io/badge/scope-local--first-4b5563.svg)
+![Runtime](https://img.shields.io/badge/runtime-PowerShell%207-2563eb.svg)
 
-## Overview
+Agent Memory Workflow is a local-first file protocol for maintaining reusable,
+auditable, and verifiable operating context for coding agents. It standardizes a
+local `.agents` directory, generic templates, an initializer, and a verifier so
+local agents can share the same machine-level guidance without depending on a
+hosted memory service or a specific agent product.
 
-Modern coding agents often operate in separate sessions and products. Important
-local context, such as tool availability, machine-specific paths, execution
-policies, and maintenance rules, is repeatedly rediscovered or lost between
+The project does not replace an agent's own memory system. It provides a stable
+local source of truth: agents read that source, import durable facts into their
+own persistent memory or instruction layer, and return a receipt that proves
+what happened.
+
+## Table of Contents
+
+- [Project Positioning](#project-positioning)
+- [Scope](#scope)
+- [Current Status](#current-status)
+- [Core Concepts](#core-concepts)
+- [How It Works](#how-it-works)
+- [Requirements](#requirements)
+- [Quick Start](#quick-start)
+- [Files to Edit After Initialization](#files-to-edit-after-initialization)
+- [Importing Memory into a New Agent](#importing-memory-into-a-new-agent)
+- [Repository Layout](#repository-layout)
+- [Protocol Files](#protocol-files)
+- [Command Reference](#command-reference)
+- [What the Verifier Checks](#what-the-verifier-checks)
+- [Security Boundary](#security-boundary)
+- [Maintenance Policy](#maintenance-policy)
+- [Design Principles](#design-principles)
+- [Why Not a Database or SDK](#why-not-a-database-or-sdk)
+- [Publishing and Reproduction Contract](#publishing-and-reproduction-contract)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Project Positioning
+
+Coding agents working on real machines often rediscover the same facts:
+
+- which tools are available and which are not
+- which paths are durable and which are temporary workspaces
+- which services should not start automatically
+- where environment variables, PATH, or shell behavior differ
+- which configuration directories must not be cleaned casually
+- how a new agent should inherit machine-level conventions
+
+If these facts live only in one chat, they disappear quickly. If they live only
+inside one agent's private memory, they are difficult to reuse across other local
 agents.
 
-This project standardizes that context as local, inspectable files. A user
-initializes a `.agents` directory, fills in non-secret machine facts, and gives
-the import prompt to each local agent. The agent then imports the stable facts
-into its own durable memory or persistent instruction layer and returns a
-receipt.
+Agent Memory Workflow uses a more inspectable model: shared facts live in a local
+`.agents` directory, and every agent follows the same import, persistence, and
+receipt protocol.
 
 ## Scope
 
-This project is designed for local agents with filesystem access.
+This project is intended for:
 
-It does not provide:
+- local Codex-like agents
+- local IDE agents
+- local CLI agents
+- local desktop agents
+- other coding agents with local filesystem access
+
+This project does not provide:
 
 - cloud synchronization
 - hosted memory storage
-- remote web-agent attachment flows
+- remote web-agent attachment workflows
 - credential management
-- a database-backed memory service
+- multi-device state synchronization
+- an agent execution sandbox
 
-The source of truth remains the local `.agents` directory.
+The source of truth is always the user's local `.agents` directory.
+
+## Current Status
+
+| Item | Status |
+| --- | --- |
+| Workflow version | `workflow-v3` |
+| Installation entrypoint | PowerShell 7 scripts |
+| CLI wrapper | `npx github:s1oopX/agent-memory-workflow` |
+| Template source | `templates/` |
+| Verifier | `tools/verify-agent-memory-workflow.ps1` |
+| Default scenario | Windows local-agent workflows |
+| License | MIT |
+
+## Core Concepts
+
+| Concept | Description |
+| --- | --- |
+| `.agents` | Local shared memory directory on the user's machine |
+| Bootstrap | Stable entrypoint for agents reading local memory |
+| Import Prompt | Instruction given to a new agent to import the workflow |
+| Receipt | Structured response returned by an agent after import |
+| Machine Facts | Non-secret, durable facts about the current machine |
+| Manifest | Machine-readable version, path, and policy declaration |
+| Verifier | Script that checks structure, version markers, references, and common secret patterns |
+
+## How It Works
+
+```mermaid
+flowchart TD
+    A["Clone repository"] --> B["Initialize .agents"]
+    B --> C["Fill machine facts"]
+    C --> D["Run verifier"]
+    D --> E["Give import prompt to local agent"]
+    E --> F["Agent imports durable memory"]
+    F --> G["Agent returns receipt"]
+    G --> H["Reimport when workflow or machine facts change"]
+```
+
+The workflow is:
+
+1. The user generates a local `.agents` directory.
+2. The user or a trusted local agent fills in machine facts.
+3. The verifier confirms that structure and policies are consistent.
+4. A new agent reads the import prompt.
+5. The agent writes stable facts into its own persistent layer.
+6. The agent returns an import receipt.
+7. The user reimports after workflow or machine-fact changes.
 
 ## Requirements
 
+Required:
+
 - Git
 - PowerShell 7 or later, available as `pwsh`
-- Node.js 18 or later, only when using the `npx` wrapper
-- A local agent that can read files from the target machine
+- a local agent that can read the filesystem
+
+Optional:
+
+- Node.js 18 or later, for the `npx` wrapper
+
+The current release uses PowerShell 7 as the initialization and verification
+entrypoint and has been validated for Windows local-agent workflows.
 
 ## Quick Start
 
-Clone the repository and initialize a local `.agents` directory:
+### Option 1: Clone and Initialize
 
 ```powershell
 git clone https://github.com/s1oopX/agent-memory-workflow.git
@@ -52,13 +154,25 @@ cd agent-memory-workflow
 pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\init-agent-memory-workflow.ps1 -TargetRoot "$HOME\.agents"
 ```
 
-Verify the generated workflow:
+Verify the generated directory:
 
 ```powershell
 pwsh -NoProfile -ExecutionPolicy Bypass -File "$HOME\.agents\tools\verify-agent-memory-workflow.ps1"
 ```
 
-Edit the generated machine reference files:
+### Option 2: Run from GitHub with npx
+
+```powershell
+npx github:s1oopX/agent-memory-workflow init --target "$HOME\.agents"
+npx github:s1oopX/agent-memory-workflow verify --root "$HOME\.agents"
+```
+
+The `npx` wrapper delegates to the PowerShell scripts in the repository. It does
+not hide the Markdown source files inside a private database.
+
+## Files to Edit After Initialization
+
+After initialization, edit these files first:
 
 ```text
 $HOME\.agents\machine\MACHINE_ENVIRONMENT_MEMORY.md
@@ -66,88 +180,263 @@ $HOME\.agents\machine\AGENT_ENVIRONMENT_QUICK_REFERENCE.md
 $HOME\.agents\machine\HOME_DIRECTORY_MAP.md
 ```
 
+These files should contain stable, non-secret machine facts such as:
+
+- verified shells, runtimes, package managers, and build tools
+- durable code, configuration, and agent directories
+- toolchain differences, such as commands available only in specific shells
+- local service preferences, such as whether a service should not auto-start
+- policies agents must follow when maintaining this directory
+
+Do not store passwords, tokens, private keys, cookies, database credentials, or
+private session logs.
+
+## Importing Memory into a New Agent
+
 Give a local agent this instruction:
 
 ```text
 Read $HOME\.agents\AGENT_MEMORY_IMPORT_PROMPT.md and import it into your local durable memory or persistent instruction layer.
 ```
 
-The agent should return an import receipt based on:
+The agent should return a receipt based on:
 
 ```text
 $HOME\.agents\AGENT_MEMORY_IMPORT_RECEIPT_TEMPLATE.md
 ```
 
-## npx Usage
+The receipt must state:
 
-The repository includes a lightweight Node.js wrapper for initialization and
-verification:
+- which files were read
+- whether local filesystem access was available
+- where memory was stored
+- whether the storage is durable
+- whether manual user action is still required
+- whether a fresh-chat test is needed
+- whether the no-secrets policy was followed
 
-```powershell
-npx github:s1oopX/agent-memory-workflow init --target "$HOME\.agents"
-npx github:s1oopX/agent-memory-workflow verify --root "$HOME\.agents"
-```
-
-The wrapper delegates to the PowerShell scripts in `tools\`.
+If the agent can only remember the import inside the current chat, it must mark
+the receipt as `chat_local_only` and must not claim durable memory storage.
 
 ## Repository Layout
 
 ```text
-bin\
-  agent-memory-workflow.js
-tools\
-  init-agent-memory-workflow.ps1
-  verify-agent-memory-workflow.ps1
-templates\
-  AGENT_BOOTSTRAP.md
-  AGENT_MEMORY_IMPORT_PROMPT.md
-  AGENT_MEMORY_IMPORT_RECEIPT_TEMPLATE.md
-  AGENT_MEMORY_WORKFLOW.md
-  AGENT_MEMORY_WORKFLOW_MANIFEST.json
-  AGENT_PLATFORM_ADAPTERS.md
-  AGENT_WORKFLOW_REPLICATION_STRATEGY.md
-  AGENT_WORKFLOW_OPEN_SOURCE_GUIDE.md
-  imports\
-  machine\
+agent-memory-workflow/
+  bin/
+    agent-memory-workflow.js
+  tools/
+    init-agent-memory-workflow.ps1
+    verify-agent-memory-workflow.ps1
+  templates/
+    AGENT_BOOTSTRAP.md
+    AGENT_MEMORY_IMPORT_PROMPT.md
+    AGENT_MEMORY_IMPORT_RECEIPT_TEMPLATE.md
+    AGENT_MEMORY_WORKFLOW.md
+    AGENT_MEMORY_WORKFLOW_CHANGELOG.md
+    AGENT_MEMORY_WORKFLOW_MANIFEST.json
+    AGENT_PLATFORM_ADAPTERS.md
+    AGENT_WORKFLOW_OPEN_SOURCE_GUIDE.md
+    AGENT_WORKFLOW_REPLICATION_STRATEGY.md
+    AGENTS.md
+    README.md
+    imports/
+      README.md
+      IMPORT_REGISTRY.md
+    machine/
+      MACHINE_ENVIRONMENT_MEMORY.md
+      AGENT_EXECUTION_PLAYBOOK.md
+      AGENT_ENVIRONMENT_QUICK_REFERENCE.md
+      HOME_DIRECTORY_MAP.md
+      MAINTENANCE_POLICY.md
 ```
 
-`templates\` is the public template source. The initializer copies these files
-to the target root, replaces placeholders with local values, installs the tool
-scripts, and runs the verifier.
+When installed, the initializer copies files from `templates/` to the target
+`.agents` directory and replaces path, user, and OS placeholders.
 
-## Workflow Model
+## Protocol Files
 
-1. Initialize a local `.agents` directory.
-2. Fill in non-secret machine facts.
-3. Run the verifier.
-4. Ask a local agent to read `AGENT_MEMORY_IMPORT_PROMPT.md`.
-5. Store the resulting durable memory inside the agent's own persistent layer.
-6. Record or review the agent's import receipt.
-7. Reimport when the workflow version, manifest, verifier, or machine facts
-   materially change.
+| File | Purpose |
+| --- | --- |
+| `AGENT_BOOTSTRAP.md` | Stable local-agent entrypoint |
+| `AGENT_MEMORY_IMPORT_PROMPT.md` | Instruction used when importing memory into a new agent |
+| `AGENT_MEMORY_IMPORT_RECEIPT_TEMPLATE.md` | Receipt format agents must return after import |
+| `AGENT_MEMORY_WORKFLOW.md` | Workflow summary and reimport policy |
+| `AGENT_MEMORY_WORKFLOW_MANIFEST.json` | Machine-readable version, path, and policy manifest |
+| `AGENT_PLATFORM_ADAPTERS.md` | Guidance for different local-agent categories |
+| `AGENT_WORKFLOW_REPLICATION_STRATEGY.md` | Rationale for file protocol, CLI, skill, and SDK choices |
+| `AGENT_WORKFLOW_OPEN_SOURCE_GUIDE.md` | Open-source publishing boundary and checklist |
+| `imports/IMPORT_REGISTRY.md` | Import status registry |
+| `machine/*` | Stable, non-secret facts about the current machine |
 
-## Security Model
+## Command Reference
 
-Shared memory files must not contain credentials, tokens, passwords, private
-keys, cookies, service secrets, or private session logs.
+Initialize:
 
-Appropriate content includes:
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\init-agent-memory-workflow.ps1 -TargetRoot "$HOME\.agents"
+```
 
-- verified tool availability
-- stable local paths
-- non-secret environment notes
-- startup and execution preferences
-- maintenance policies
-- local agent import status
+Overwrite target files:
 
-The verifier scans for common secret patterns, but human review remains required
-before publishing or sharing any machine-specific files.
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\init-agent-memory-workflow.ps1 -TargetRoot "$HOME\.agents" -Force
+```
 
-## Versioning
+Skip automatic verification after initialization:
 
-The current workflow version is `workflow-v3`. Version markers are stored in the
-manifest, import prompt, receipt template, workflow summary, and import
-registry.
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\init-agent-memory-workflow.ps1 -TargetRoot "$HOME\.agents" -SkipVerify
+```
+
+Verify a target directory:
+
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File "$HOME\.agents\tools\verify-agent-memory-workflow.ps1" -Root "$HOME\.agents"
+```
+
+Verify repository templates:
+
+```powershell
+npm run verify
+```
+
+Initialize through the Node wrapper:
+
+```powershell
+npx github:s1oopX/agent-memory-workflow init --target "$HOME\.agents"
+```
+
+Verify through the Node wrapper:
+
+```powershell
+npx github:s1oopX/agent-memory-workflow verify --root "$HOME\.agents"
+```
+
+## What the Verifier Checks
+
+`verify-agent-memory-workflow.ps1` checks:
+
+- required files exist
+- `workflow-v3` markers are present
+- core documents reference each other correctly
+- the receipt template contains required fields
+- the manifest parses as JSON
+- manifest paths point to the current target directory
+- adapter categories remain local-only
+- common secret patterns do not appear in shared files
+
+The verifier is not a substitute for human review. Before publishing, sharing,
+or committing machine-specific files, manually confirm that no private facts or
+secrets are present.
+
+## Security Boundary
+
+Shared memory files may record:
+
+- tool names and versions
+- non-secret PATH or shell behavior differences
+- stable directory locations
+- local service startup preferences
+- build-tool availability
+- agent execution policies
+- local directory maintenance rules
+
+Shared memory files must not record:
+
+- passwords
+- API tokens
+- private keys
+- cookies
+- database credentials
+- Redis, MySQL, or other service secrets
+- private chat transcripts
+- temporary session logs
+
+If a task needs credentials, use an approved local credential mechanism or ask
+the user during that task. Do not write credentials into shared memory.
+
+## Maintenance Policy
+
+Run the verifier after:
+
+- editing machine facts under `machine/`
+- changing the import prompt or receipt template
+- changing the manifest
+- changing the initializer or verifier scripts
+- preparing a release or commit
+
+Ask agents to reimport when:
+
+- the workflow version changes
+- `AGENT_MEMORY_IMPORT_PROMPT.md` changes
+- `AGENT_MEMORY_WORKFLOW_MANIFEST.json` changes
+- machine facts materially change
+- platform adapter guidance changes
+
+## Design Principles
+
+- Local-first: the source of truth lives in the user's filesystem.
+- Inspectable files: Markdown and JSON are preferred over hidden storage.
+- Agent-neutral: the protocol is not bound to one agent product.
+- Verifiable: structure, versions, references, and common risks are checked.
+- No secrets: shared memory stores only non-secret, durable facts.
+- Reproducible: each machine generates its own instance instead of publishing
+  personal machine facts.
+
+## Why Not a Database or SDK
+
+At this stage, the most important requirement is reproducible local machine
+context for local agents. A file protocol is easier to inspect, copy, edit, and
+roll back than a database or SDK.
+
+An SDK becomes useful after a stable application or integration boundary exists.
+A database is useful when concurrent writes, queries, or synchronization become
+requirements, but it increases deployment and review complexity. The current
+release uses a file protocol to keep dependencies low and behavior explicit.
+
+## Publishing and Reproduction Contract
+
+The public repository publishes the protocol, templates, initializer, and
+verifier. It does not publish one person's private `.agents` instance.
+
+Users should generate their own local instance and fill in their own machine
+facts. Real credentials, private path policies, private import receipts, and
+temporary session logs should never be published as public templates.
+
+## Roadmap
+
+Short term:
+
+- improve README and template documentation
+- improve verifier error messages
+- add more local-agent adapter guidance
+
+Medium term:
+
+- provide a more complete CLI experience
+- add preflight checks before initialization
+- add template upgrade and migration helpers
+
+Long term:
+
+- evaluate an SDK after a stable integration boundary exists
+- add stricter import auditing for multi-agent local workflows
+
+## Contributing
+
+Issues and pull requests are welcome. Useful contribution areas include:
+
+- clearer documentation and examples
+- local-agent adapter guidance
+- PowerShell initializer and verifier improvements
+- stronger security scanning rules
+- cross-platform path handling improvements
+
+Before submitting a contribution, run:
+
+```powershell
+npm run verify
+```
 
 ## License
 
