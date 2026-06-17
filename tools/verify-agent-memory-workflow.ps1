@@ -1,6 +1,7 @@
 param(
     [string]$Root,
-    [switch]$TemplateMode
+    [switch]$TemplateMode,
+    [switch]$Json
 )
 
 $ErrorActionPreference = "Stop"
@@ -282,6 +283,24 @@ try {
 }
 catch {
     Add-Failure "Manifest JSON parse failed: $($_.Exception.Message)"
+}
+
+$result = [ordered]@{
+    ok = ($failures.Count -eq 0)
+    root = $rootPath
+    template_mode = [bool]$TemplateMode
+    workflow_version = $currentVersion
+    required_files = $requiredFiles.Count
+    files_scanned = $scannedFiles.Count
+    failures = @($failures.ToArray())
+}
+
+if ($Json) {
+    $result | ConvertTo-Json -Depth 6
+    if (-not $result.ok) {
+        exit 1
+    }
+    exit 0
 }
 
 if ($failures.Count -gt 0) {

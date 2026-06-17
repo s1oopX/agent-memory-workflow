@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.9 - 2026-06-17
+
+- Added JSON output to `verify-agent-memory-workflow.ps1` with `-Json`.
+- Added `agent-memory-workflow verify --json`.
+- Added smoke tests that parse verifier JSON from both PowerShell and the Node
+  wrapper.
+
 ## 0.1.8 - 2026-06-17
 
 - Added `--json` output for `preflight`, `status`, and `show-paths`.

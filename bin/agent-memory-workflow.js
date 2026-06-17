@@ -15,7 +15,7 @@ Usage:
   agent-memory-workflow init [--target <path>] [--force] [--dry-run] [--backup-root <path>] [--no-backup] [--overwrite-machine-facts] [--skip-verify]
   agent-memory-workflow upgrade [--target <path>] [--dry-run] [--backup-root <path>] [--no-backup] [--overwrite-machine-facts] [--skip-verify]
   agent-memory-workflow preflight [--target <path>] [--json]
-  agent-memory-workflow verify [--root <path>]
+  agent-memory-workflow verify [--root <path>] [--json]
   agent-memory-workflow status [--root <path>] [--json]
   agent-memory-workflow show-paths [--root <path>] [--json]
   agent-memory-workflow doctor [--root <path>]
@@ -429,10 +429,12 @@ function main() {
   }
 
   if (command === "verify") {
-    validateOptions(args, { valueOptions: ["--root"] });
+    validateOptions(args, { valueOptions: ["--root"], flagOptions: ["--json"] });
     const root = readOption(args, "--root", path.join(os.homedir(), ".agents"));
     const script = path.join(repoRoot, "tools", "verify-agent-memory-workflow.ps1");
-    runPwsh(script, ["-Root", root]);
+    const psArgs = ["-Root", root];
+    if (args.includes("--json")) psArgs.push("-Json");
+    runPwsh(script, psArgs);
     return;
   }
 

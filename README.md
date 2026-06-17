@@ -300,6 +300,7 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\init-agent-memory-workflow
 
 ```powershell
 pwsh -NoProfile -ExecutionPolicy Bypass -File "$HOME\.agents\tools\verify-agent-memory-workflow.ps1" -Root "$HOME\.agents"
+pwsh -NoProfile -ExecutionPolicy Bypass -File "$HOME\.agents\tools\verify-agent-memory-workflow.ps1" -Root "$HOME\.agents" -Json
 ```
 
 验证仓库模板：
@@ -343,6 +344,7 @@ npx github:s1oopX/agent-memory-workflow upgrade --target "$HOME\.agents"
 
 ```powershell
 npx github:s1oopX/agent-memory-workflow verify --root "$HOME\.agents"
+npx github:s1oopX/agent-memory-workflow verify --root "$HOME\.agents" --json
 ```
 
 查看已安装目录的轻量状态：

@@ -74,6 +74,13 @@ try {
         $verifier = Join-Path $target "tools\verify-agent-memory-workflow.ps1"
         & pwsh -NoProfile -ExecutionPolicy Bypass -File $verifier -Root $target
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+        $verifyJsonText = (& pwsh -NoProfile -ExecutionPolicy Bypass -File $verifier -Root $target -Json) -join "`n"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        $verifyJson = $verifyJsonText | ConvertFrom-Json
+        if (-not $verifyJson.ok -or $verifyJson.workflow_version -ne "workflow-v3") {
+            throw "Unexpected verifier JSON: $verifyJsonText"
+        }
     }
 
     Invoke-Step "dry run leaves target unchanged" {
@@ -124,6 +131,13 @@ try {
     Invoke-Step "node wrapper verifies installed target" {
         & node $cliScript verify --root $target
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+        $verifyJsonText = (& node $cliScript verify --root $target --json) -join "`n"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        $verifyJson = $verifyJsonText | ConvertFrom-Json
+        if (-not $verifyJson.ok -or $verifyJson.workflow_version -ne "workflow-v3") {
+            throw "Unexpected node verify JSON: $verifyJsonText"
+        }
     }
 
     Invoke-Step "node wrapper upgrades installed target" {

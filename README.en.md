@@ -318,6 +318,7 @@ Verify a target directory:
 
 ```powershell
 pwsh -NoProfile -ExecutionPolicy Bypass -File "$HOME\.agents\tools\verify-agent-memory-workflow.ps1" -Root "$HOME\.agents"
+pwsh -NoProfile -ExecutionPolicy Bypass -File "$HOME\.agents\tools\verify-agent-memory-workflow.ps1" -Root "$HOME\.agents" -Json
 ```
 
 Verify repository templates:
@@ -363,6 +364,7 @@ Verify through the Node wrapper:
 
 ```powershell
 npx github:s1oopX/agent-memory-workflow verify --root "$HOME\.agents"
+npx github:s1oopX/agent-memory-workflow verify --root "$HOME\.agents" --json
 ```
 
 Inspect lightweight status for an installed directory:
