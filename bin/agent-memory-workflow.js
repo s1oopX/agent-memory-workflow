@@ -8,6 +8,29 @@ const os = require("node:os");
 const repoRoot = path.resolve(__dirname, "..");
 const packageJson = require("../package.json");
 
+const managedRelativePaths = [
+  "AGENT_BOOTSTRAP.md",
+  "AGENT_MEMORY_IMPORT_PROMPT.md",
+  "AGENT_MEMORY_IMPORT_RECEIPT_TEMPLATE.md",
+  "AGENT_MEMORY_WORKFLOW.md",
+  "AGENT_MEMORY_WORKFLOW_CHANGELOG.md",
+  "AGENT_MEMORY_WORKFLOW_MANIFEST.json",
+  "AGENT_PLATFORM_ADAPTERS.md",
+  "AGENT_WORKFLOW_OPEN_SOURCE_GUIDE.md",
+  "AGENT_WORKFLOW_REPLICATION_STRATEGY.md",
+  "AGENTS.md",
+  "README.md",
+  path.join("imports", "README.md"),
+  path.join("imports", "IMPORT_REGISTRY.md"),
+  path.join("machine", "MACHINE_ENVIRONMENT_MEMORY.md"),
+  path.join("machine", "AGENT_EXECUTION_PLAYBOOK.md"),
+  path.join("machine", "AGENT_ENVIRONMENT_QUICK_REFERENCE.md"),
+  path.join("machine", "HOME_DIRECTORY_MAP.md"),
+  path.join("machine", "MAINTENANCE_POLICY.md"),
+  path.join("tools", "verify-agent-memory-workflow.ps1"),
+  path.join("tools", "init-agent-memory-workflow.ps1"),
+];
+
 function usage() {
   console.log(`agent-memory-workflow
 
@@ -128,6 +151,15 @@ function formatPresent(filePath) {
 
 function fileStatus(filePath) {
   return {
+    path: filePath,
+    status: formatPresent(filePath),
+  };
+}
+
+function managedFileStatus(root, relativePath) {
+  const filePath = path.join(root, relativePath);
+  return {
+    relative_path: relativePath,
     path: filePath,
     status: formatPresent(filePath),
   };
@@ -337,6 +369,15 @@ function buildPreflight(target) {
   } else if (targetExists) {
     targetMode = "existing non-workflow directory";
   }
+  const managedFiles = managedRelativePaths.map((relativePath) => managedFileStatus(resolvedTarget, relativePath));
+  const presentManagedFiles = managedFiles.filter((file) => file.status === "present");
+  const hasNonWorkflowManagedFileConflicts =
+    targetMode === "existing non-workflow directory" && presentManagedFiles.length > 0;
+  if (hasNonWorkflowManagedFileConflicts) {
+    failures.push(
+      "Existing non-workflow target contains workflow-managed files. Choose a different target, remove the conflicts, or review and rerun init with --force."
+    );
+  }
 
   return {
     command: "preflight",
@@ -354,6 +395,11 @@ function buildPreflight(target) {
       path: resolvedTarget,
       exists: targetExists,
       mode: targetMode,
+      managed_files: {
+        present: presentManagedFiles.length,
+        total: managedFiles.length,
+        conflicts: hasNonWorkflowManagedFileConflicts ? presentManagedFiles : [],
+      },
       manifest: {
         path: paths.manifest,
         status: formatPresent(paths.manifest),
@@ -388,6 +434,7 @@ function runPreflight(target, { json = false } = {}) {
   console.log(`Target: ${result.target.path}`);
   console.log(`Target exists: ${result.target.exists ? "yes" : "no"}`);
   console.log(`Target manifest: ${result.target.manifest.status}`);
+  console.log(`Managed file conflicts: ${result.target.managed_files.conflicts.length}`);
   if (result.target.manifest.parse_error) {
     console.log(`Target manifest parse: failed (${result.target.manifest.parse_error})`);
   } else if (result.target.manifest.version) {

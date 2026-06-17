@@ -360,6 +360,10 @@ npx github:s1oopX/agent-memory-workflow preflight --target "$HOME\.agents"
 npx github:s1oopX/agent-memory-workflow preflight --target "$HOME\.agents" --json
 ```
 
+Preflight reports the target directory mode, manifest state, and workflow-managed
+file conflicts in existing non-workflow directories that would block a normal
+initialization.
+
 Upgrade an existing directory through the Node wrapper. This is the safe upgrade
 mode: it overwrites workflow-managed files, creates backups, and preserves
 existing machine facts under `machine\` by default:

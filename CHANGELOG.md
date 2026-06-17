@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.14 - 2026-06-17
+
+- Strengthened `agent-memory-workflow preflight` so existing non-workflow target
+  directories fail when they already contain workflow-managed files that would
+  block a normal initialization.
+- Added text and JSON smoke coverage for managed-file conflict detection.
+
 ## 0.1.13 - 2026-06-17
 
 - Clarified the `npx` wrapper documentation now that the CLI includes direct

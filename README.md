@@ -340,6 +340,8 @@ npx github:s1oopX/agent-memory-workflow preflight --target "$HOME\.agents"
 npx github:s1oopX/agent-memory-workflow preflight --target "$HOME\.agents" --json
 ```
 
+预检会报告目标目录模式、Manifest 状态，以及已有非工作流目录中会阻止普通初始化的工作流托管文件冲突。
+
 通过 Node 包装器升级已有目录。该命令等价于安全升级模式，会自动覆盖工作流托管文件、创建备份，并默认保留 `machine\` 下已有的机器事实：
 
 ```powershell

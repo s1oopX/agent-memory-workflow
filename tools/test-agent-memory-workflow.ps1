@@ -62,6 +62,7 @@ function Assert-TextContains {
 $base = Join-Path ([System.IO.Path]::GetTempPath()) ("agent-memory-workflow-test-" + [guid]::NewGuid().ToString())
 $target = Join-Path $base "install"
 $dryRunTarget = Join-Path $base "dry-run"
+$conflictTarget = Join-Path $base "conflict"
 $packageJson = Get-Content -LiteralPath (Join-Path $sourceRootPath "package.json") -Raw | ConvertFrom-Json
 
 try {
@@ -103,6 +104,31 @@ try {
         $preflightJson = $preflightJsonText | ConvertFrom-Json
         if (-not $preflightJson.ok -or $preflightJson.target.mode -ne "fresh install") {
             throw "Unexpected fresh preflight JSON: $preflightJsonText"
+        }
+    }
+
+    Invoke-Step "node wrapper preflight catches non-workflow conflicts" {
+        New-Item -ItemType Directory -Path $conflictTarget -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $conflictTarget "AGENT_BOOTSTRAP.md") -Value "# Existing unrelated file" -Encoding UTF8
+
+        $preflightOutput = (& node $cliScript preflight --target $conflictTarget 2>&1) -join "`n"
+        if ($LASTEXITCODE -ne 1) {
+            throw "Expected conflicting preflight to exit 1, got $LASTEXITCODE. Output: $preflightOutput"
+        }
+        Assert-TextContains -Text $preflightOutput -Needle "Target mode: existing non-workflow directory" -Context "conflicting preflight output"
+        Assert-TextContains -Text $preflightOutput -Needle "Managed file conflicts: 1" -Context "conflicting preflight output"
+        Assert-TextContains -Text $preflightOutput -Needle "Result: FAIL" -Context "conflicting preflight output"
+
+        $preflightJsonText = (& node $cliScript preflight --target $conflictTarget --json 2>&1) -join "`n"
+        if ($LASTEXITCODE -ne 1) {
+            throw "Expected conflicting preflight JSON to exit 1, got $LASTEXITCODE. Output: $preflightJsonText"
+        }
+        $preflightJson = $preflightJsonText | ConvertFrom-Json
+        if ($preflightJson.ok -or $preflightJson.target.managed_files.present -ne 1) {
+            throw "Unexpected conflicting preflight JSON: $preflightJsonText"
+        }
+        if ($preflightJson.target.managed_files.conflicts[0].relative_path -ne "AGENT_BOOTSTRAP.md") {
+            throw "Unexpected conflicting managed file JSON: $preflightJsonText"
         }
     }
 
