@@ -10,11 +10,12 @@ function usage() {
   console.log(`agent-memory-workflow
 
 Usage:
-  agent-memory-workflow init [--target <path>] [--force] [--skip-verify]
+  agent-memory-workflow init [--target <path>] [--force] [--dry-run] [--backup-root <path>] [--no-backup] [--overwrite-machine-facts] [--skip-verify]
   agent-memory-workflow verify [--root <path>]
 
 Examples:
   agent-memory-workflow init --target "$HOME/.agents"
+  agent-memory-workflow init --target "$HOME/.agents" --dry-run
   agent-memory-workflow verify --root "$HOME/.agents"
 `);
 }
@@ -60,9 +61,14 @@ function main() {
 
   if (command === "init") {
     const target = readOption(args, "--target", path.join(os.homedir(), ".agents"));
+    const backupRoot = readOption(args, "--backup-root", undefined);
     const script = path.join(repoRoot, "tools", "init-agent-memory-workflow.ps1");
     const psArgs = ["-TargetRoot", target, "-SourceRoot", repoRoot];
+    if (backupRoot) psArgs.push("-BackupRoot", backupRoot);
     if (args.includes("--force")) psArgs.push("-Force");
+    if (args.includes("--dry-run")) psArgs.push("-DryRun");
+    if (args.includes("--no-backup")) psArgs.push("-NoBackup");
+    if (args.includes("--overwrite-machine-facts")) psArgs.push("-OverwriteMachineFacts");
     if (args.includes("--skip-verify")) psArgs.push("-SkipVerify");
     runPwsh(script, psArgs);
     return;

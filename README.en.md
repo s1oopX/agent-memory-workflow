@@ -91,6 +91,7 @@ The source of truth is always the user's local `.agents` directory.
 | CLI wrapper | `npx github:s1oopX/agent-memory-workflow` |
 | Template source | `templates/` |
 | Verifier | `tools/verify-agent-memory-workflow.ps1` |
+| Automated verification | GitHub Actions + `npm run ci` |
 | Default scenario | Windows local-agent workflows |
 | License | MIT |
 
@@ -282,6 +283,29 @@ Overwrite target files:
 pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\init-agent-memory-workflow.ps1 -TargetRoot "$HOME\.agents" -Force
 ```
 
+`-Force` automatically backs up overwritten files and preserves existing
+machine facts under `machine\` by default.
+If backups are explicitly unwanted, pass `-NoBackup`; this is recommended only
+for disposable test directories.
+
+Preview initialization or upgrade actions without writing files:
+
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\init-agent-memory-workflow.ps1 -TargetRoot "$HOME\.agents" -DryRun
+```
+
+Specify a backup directory:
+
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\init-agent-memory-workflow.ps1 -TargetRoot "$HOME\.agents" -Force -BackupRoot "$HOME\.agents-backup"
+```
+
+Explicitly allow overwriting machine facts under `machine\`:
+
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\init-agent-memory-workflow.ps1 -TargetRoot "$HOME\.agents" -Force -OverwriteMachineFacts
+```
+
 Skip automatic verification after initialization:
 
 ```powershell
@@ -300,10 +324,22 @@ Verify repository templates:
 npm run verify
 ```
 
+Run the full local CI suite:
+
+```powershell
+npm run ci
+```
+
 Initialize through the Node wrapper:
 
 ```powershell
 npx github:s1oopX/agent-memory-workflow init --target "$HOME\.agents"
+```
+
+Preview initialization through the Node wrapper:
+
+```powershell
+npx github:s1oopX/agent-memory-workflow init --target "$HOME\.agents" --dry-run
 ```
 
 Verify through the Node wrapper:
@@ -364,6 +400,13 @@ Run the verifier after:
 - changing the manifest
 - changing the initializer or verifier scripts
 - preparing a release or commit
+
+When upgrading an existing `.agents` directory, run `-DryRun` first to inspect
+which files will be created, overwritten, or preserved. With `-Force`, the script
+backs up overwritten files and preserves existing machine facts under `machine\`
+by default; those files are overwritten only when `-OverwriteMachineFacts` is
+passed explicitly. `-NoBackup` disables backup protection and should be used only
+with disposable directories.
 
 Ask agents to reimport when:
 

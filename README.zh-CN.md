@@ -80,6 +80,7 @@ Agent Memory Workflow 采用更稳妥的方式：把共享事实保存在本地 
 | CLI 包装器 | `npx github:s1oopX/agent-memory-workflow` |
 | 模板源 | `templates/` |
 | 验证器 | `tools/verify-agent-memory-workflow.ps1` |
+| 自动验证 | GitHub Actions + `npm run ci` |
 | 默认平台 | Windows 本地 Agent 场景 |
 | 许可证 | MIT |
 
@@ -266,6 +267,27 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\init-agent-memory-workflow
 pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\init-agent-memory-workflow.ps1 -TargetRoot "$HOME\.agents" -Force
 ```
 
+`-Force` 会自动备份被覆盖的文件，并默认保留 `machine\` 下已有的机器事实。
+如确实不希望生成备份，可额外传入 `-NoBackup`；这只建议在临时测试目录中使用。
+
+预览初始化或升级操作，不写入文件：
+
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\init-agent-memory-workflow.ps1 -TargetRoot "$HOME\.agents" -DryRun
+```
+
+指定备份目录：
+
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\init-agent-memory-workflow.ps1 -TargetRoot "$HOME\.agents" -Force -BackupRoot "$HOME\.agents-backup"
+```
+
+明确允许覆盖 `machine\` 下的机器事实：
+
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\init-agent-memory-workflow.ps1 -TargetRoot "$HOME\.agents" -Force -OverwriteMachineFacts
+```
+
 跳过初始化后的自动验证：
 
 ```powershell
@@ -284,10 +306,22 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File "$HOME\.agents\tools\verify-agent-
 npm run verify
 ```
 
+运行完整本地 CI：
+
+```powershell
+npm run ci
+```
+
 通过 Node 包装器初始化：
 
 ```powershell
 npx github:s1oopX/agent-memory-workflow init --target "$HOME\.agents"
+```
+
+通过 Node 包装器预览初始化：
+
+```powershell
+npx github:s1oopX/agent-memory-workflow init --target "$HOME\.agents" --dry-run
 ```
 
 通过 Node 包装器验证：
@@ -345,6 +379,8 @@ npx github:s1oopX/agent-memory-workflow verify --root "$HOME\.agents"
 - 修改 Manifest
 - 修改初始化脚本或验证脚本
 - 准备提交或发布新版本
+
+升级已有 `.agents` 目录时，建议先运行 `-DryRun`，确认将创建、覆盖或保留哪些文件。使用 `-Force` 时，脚本会备份被覆盖的文件，并默认保留 `machine\` 下已有的机器事实；只有显式传入 `-OverwriteMachineFacts` 才会覆盖这些文件。`-NoBackup` 会关闭备份保护，只应在可丢弃目录中使用。
 
 建议在以下情况要求 Agent 重新导入：
 

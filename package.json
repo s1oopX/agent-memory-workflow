@@ -21,7 +21,11 @@
     "node": ">=18"
   },
   "scripts": {
-    "verify": "pwsh -NoProfile -ExecutionPolicy Bypass -File ./tools/verify-agent-memory-workflow.ps1 -Root ./templates -TemplateMode"
+    "check": "node --check ./bin/agent-memory-workflow.js",
+    "verify": "pwsh -NoProfile -ExecutionPolicy Bypass -File ./tools/verify-agent-memory-workflow.ps1 -Root ./templates -TemplateMode",
+    "test": "pwsh -NoProfile -ExecutionPolicy Bypass -File ./tools/test-agent-memory-workflow.ps1",
+    "pack:dry-run": "npm pack --dry-run",
+    "ci": "npm run check && npm run verify && npm test && npm run pack:dry-run"
   },
   "keywords": [
     "agent",

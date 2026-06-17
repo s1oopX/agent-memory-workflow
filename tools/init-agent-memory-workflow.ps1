@@ -1,7 +1,11 @@
 param(
     [string]$TargetRoot = (Join-Path $HOME ".agents"),
     [string]$SourceRoot,
+    [string]$BackupRoot,
     [switch]$Force,
+    [switch]$DryRun,
+    [switch]$NoBackup,
+    [switch]$OverwriteMachineFacts,
     [switch]$SkipVerify
 )
 
@@ -15,6 +19,10 @@ if (-not $SourceRoot) {
 
 $sourceRootPath = [System.IO.Path]::GetFullPath($SourceRoot)
 $targetRootPath = [System.IO.Path]::GetFullPath($TargetRoot)
+$backupRootPath = $null
+if ($BackupRoot) {
+    $backupRootPath = [System.IO.Path]::GetFullPath($BackupRoot)
+}
 $templateRootPath = Join-Path $sourceRootPath "templates"
 if (-not (Test-Path -LiteralPath $templateRootPath -PathType Container)) {
     throw "Template directory not found: $templateRootPath"
@@ -58,9 +66,56 @@ function Get-SourcePath {
     return (Join-Path $templateRootPath $RelativePath)
 }
 
+function Test-IsMachineFact {
+    param([string]$RelativePath)
+    return $RelativePath.StartsWith("machine\", [System.StringComparison]::OrdinalIgnoreCase)
+}
+
+function Add-Action {
+    param([string]$Message)
+    $script:actions.Add($Message) | Out-Null
+}
+
+function Get-BackupRoot {
+    if (-not $script:backupRootPath) {
+        $timestamp = (Get-Date).ToUniversalTime().ToString("yyyyMMddTHHmmssZ")
+        $script:backupRootPath = Join-Path $targetRootPath ".backups\agent-memory-workflow-$timestamp"
+    }
+    return $script:backupRootPath
+}
+
+function Backup-TargetFile {
+    param(
+        [string]$TargetPath,
+        [string]$RelativePath
+    )
+
+    if ($NoBackup) {
+        if ($DryRun) {
+            Add-Action "Would skip backup for existing file: $RelativePath"
+        }
+        else {
+            Add-Action "Skipping backup for existing file: $RelativePath"
+        }
+        return
+    }
+
+    $root = Get-BackupRoot
+    $backupPath = Join-Path $root $RelativePath
+    if ($DryRun) {
+        Add-Action "Would back up existing file: $RelativePath"
+        return
+    }
+
+    Add-Action "Backing up existing file: $RelativePath"
+    New-Item -ItemType Directory -Path (Split-Path -Parent $backupPath) -Force | Out-Null
+    Copy-Item -LiteralPath $TargetPath -Destination $backupPath -Force
+}
+
 $homeDir = [Environment]::GetFolderPath("UserProfile")
 $userId = [Environment]::UserName
 $osName = if ($IsWindows) { "Windows" } elseif ($IsMacOS) { "macOS" } else { "Linux" }
+$actions = New-Object System.Collections.Generic.List[string]
 
 $replacements = [ordered]@{}
 $replacements["{{AGENTS_ROOT_JSON}}"] = ConvertTo-JsonStringContent $targetRootPath
@@ -78,19 +133,61 @@ foreach ($relativePath in $managedFiles) {
     }
 
     $targetPath = Join-Path $targetRootPath $relativePath
-    if ((Test-Path -LiteralPath $targetPath -PathType Leaf) -and -not $Force) {
-        throw "Target file already exists: $targetPath. Re-run with -Force to overwrite."
+    $targetExists = Test-Path -LiteralPath $targetPath -PathType Leaf
+
+    if ($targetExists) {
+        if (-not $Force) {
+            if ($DryRun) {
+                Add-Action "Would fail because target exists without -Force: $relativePath"
+                continue
+            }
+            throw "Target file already exists: $targetPath. Re-run with -Force to overwrite."
+        }
+
+        if ((Test-IsMachineFact $relativePath) -and -not $OverwriteMachineFacts) {
+            Add-Action "Preserving existing machine fact: $relativePath"
+            continue
+        }
+
+        Backup-TargetFile -TargetPath $targetPath -RelativePath $relativePath
+        if ($DryRun) {
+            Add-Action "Would overwrite file: $relativePath"
+        }
+        else {
+            Add-Action "Overwriting file: $relativePath"
+        }
+    }
+    else {
+        if ($DryRun) {
+            Add-Action "Would create file: $relativePath"
+        }
+        else {
+            Add-Action "Creating file: $relativePath"
+        }
     }
 
     $targetDirectory = Split-Path -Parent $targetPath
-    New-Item -ItemType Directory -Path $targetDirectory -Force | Out-Null
+    if (-not $DryRun) {
+        New-Item -ItemType Directory -Path $targetDirectory -Force | Out-Null
+    }
 
     $content = Get-Content -LiteralPath $sourcePath -Raw
     foreach ($entry in $replacements.GetEnumerator()) {
         $content = $content.Replace($entry.Key, $entry.Value)
     }
 
-    Set-Content -LiteralPath $targetPath -Value $content -Encoding UTF8
+    if (-not $DryRun) {
+        Set-Content -LiteralPath $targetPath -Value $content -Encoding UTF8
+    }
+}
+
+if ($DryRun) {
+    Write-Host "Agent memory workflow dry run: $targetRootPath"
+    foreach ($action in $actions) {
+        Write-Host "- $action"
+    }
+    Write-Host "No files changed."
+    exit 0
 }
 
 if (-not $SkipVerify) {
@@ -102,3 +199,9 @@ if (-not $SkipVerify) {
 }
 
 Write-Host "Agent memory workflow initialized: $targetRootPath"
+foreach ($action in $actions) {
+    Write-Host "- $action"
+}
+if ($backupRootPath -and (Test-Path -LiteralPath $backupRootPath -PathType Container)) {
+    Write-Host "Backup written: $backupRootPath"
+}
