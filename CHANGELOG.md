@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.12 - 2026-06-17
+
+- Updated GitHub Actions workflow dependencies to `actions/checkout@v6` and
+  `actions/setup-node@v6` to avoid the Node 20 action-runtime deprecation.
+
 ## 0.1.11 - 2026-06-17
 
 - Added `agent-memory-workflow import-prompt` to print the exact instruction to
