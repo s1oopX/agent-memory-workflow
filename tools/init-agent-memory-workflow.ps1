@@ -116,6 +116,7 @@ $homeDir = [Environment]::GetFolderPath("UserProfile")
 $userId = [Environment]::UserName
 $osName = if ($IsWindows) { "Windows" } elseif ($IsMacOS) { "macOS" } else { "Linux" }
 $actions = New-Object System.Collections.Generic.List[string]
+$dryRunFailures = New-Object System.Collections.Generic.List[string]
 
 $replacements = [ordered]@{}
 $replacements["{{AGENTS_ROOT_JSON}}"] = ConvertTo-JsonStringContent $targetRootPath
@@ -138,7 +139,9 @@ foreach ($relativePath in $managedFiles) {
     if ($targetExists) {
         if (-not $Force) {
             if ($DryRun) {
-                Add-Action "Would fail because target exists without -Force: $relativePath"
+                $message = "Would fail because target exists without -Force: $relativePath"
+                Add-Action $message
+                $dryRunFailures.Add($message) | Out-Null
                 continue
             }
             throw "Target file already exists: $targetPath. Re-run with -Force to overwrite."
@@ -187,6 +190,11 @@ if ($DryRun) {
         Write-Host "- $action"
     }
     Write-Host "No files changed."
+    if ($dryRunFailures.Count -gt 0) {
+        Write-Host "Result: FAIL"
+        exit 1
+    }
+    Write-Host "Result: PASS"
     exit 0
 }
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.15 - 2026-06-17
+
+- Changed dry-run initialization to exit nonzero when the simulated operation
+  would fail because an existing target file requires `--force`.
+- Added smoke coverage proving conflicting dry runs write no files and report
+  `Result: FAIL`.
+
 ## 0.1.14 - 2026-06-17
 
 - Strengthened `agent-memory-workflow preflight` so existing non-workflow target

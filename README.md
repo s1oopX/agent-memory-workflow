@@ -284,6 +284,8 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\init-agent-memory-workflow
 pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\init-agent-memory-workflow.ps1 -TargetRoot "$HOME\.agents" -DryRun
 ```
 
+如果 dry run 发现目标文件已存在且未传入 `-Force`，命令会报告 `Result: FAIL` 并以非零状态退出，但仍不会写入文件。
+
 指定备份目录：
 
 ```powershell

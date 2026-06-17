@@ -304,6 +304,9 @@ Preview initialization or upgrade actions without writing files:
 pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\init-agent-memory-workflow.ps1 -TargetRoot "$HOME\.agents" -DryRun
 ```
 
+If dry run finds an existing target file and `-Force` was not passed, it reports
+`Result: FAIL` and exits nonzero, while still writing no files.
+
 Specify a backup directory:
 
 ```powershell

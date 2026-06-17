@@ -62,6 +62,7 @@ function Assert-TextContains {
 $base = Join-Path ([System.IO.Path]::GetTempPath()) ("agent-memory-workflow-test-" + [guid]::NewGuid().ToString())
 $target = Join-Path $base "install"
 $dryRunTarget = Join-Path $base "dry-run"
+$dryRunConflictTarget = Join-Path $base "dry-run-conflict"
 $conflictTarget = Join-Path $base "conflict"
 $packageJson = Get-Content -LiteralPath (Join-Path $sourceRootPath "package.json") -Raw | ConvertFrom-Json
 
@@ -89,6 +90,22 @@ try {
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         if (Test-Path -LiteralPath $dryRunTarget) {
             throw "Dry run created target path: $dryRunTarget"
+        }
+    }
+
+    Invoke-Step "dry run reports simulated conflicts as failure" {
+        New-Item -ItemType Directory -Path $dryRunConflictTarget -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $dryRunConflictTarget "AGENT_BOOTSTRAP.md") -Value "# Existing unrelated file" -Encoding UTF8
+
+        $dryRunOutput = (& node $cliScript init --target $dryRunConflictTarget --dry-run 2>&1) -join "`n"
+        if ($LASTEXITCODE -ne 1) {
+            throw "Expected conflicting dry run to exit 1, got $LASTEXITCODE. Output: $dryRunOutput"
+        }
+        Assert-TextContains -Text $dryRunOutput -Needle "Would fail because target exists without -Force: AGENT_BOOTSTRAP.md" -Context "conflicting dry-run output"
+        Assert-TextContains -Text $dryRunOutput -Needle "No files changed." -Context "conflicting dry-run output"
+        Assert-TextContains -Text $dryRunOutput -Needle "Result: FAIL" -Context "conflicting dry-run output"
+        if (Test-Path -LiteralPath (Join-Path $dryRunConflictTarget "AGENT_MEMORY_IMPORT_PROMPT.md")) {
+            throw "Conflicting dry run wrote a new managed file."
         }
     }
 
